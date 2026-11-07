@@ -126,7 +126,7 @@ export function AddRepositoriesDialog({
                     <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-muted/50">
                       <Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => toggle(r.id, v === true)} />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
                           <span className="truncate text-sm font-medium">{r.fullName}</span>
                           {r.private && (
                             <Badge variant="outline">
