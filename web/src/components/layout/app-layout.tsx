@@ -9,13 +9,13 @@ import {
   Monitor,
   Moon,
   Settings,
-  Star,
   Sun,
   type LucideIcon,
 } from "lucide-react";
 import { Suspense, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { GitHubIcon } from "@/components/icons";
+import { Logo } from "@/components/logo";
 import { useTheme } from "@/components/theme-provider";
 import { UserAvatar } from "@/components/shared";
 import { Button } from "@/components/ui/button";
@@ -44,9 +44,7 @@ const NAV: { to: string; label: string; icon: LucideIcon }[] = [
 function Brand() {
   return (
     <div className="flex h-14 items-center gap-2 px-5">
-      <div className="flex size-8 items-center justify-center rounded-lg bg-star/15">
-        <Star className="size-4 fill-star text-star" />
-      </div>
+      <Logo />
       <span className="text-base font-semibold tracking-tight">StarWatch</span>
     </div>
   );
@@ -210,7 +208,7 @@ export function AppLayout({ user }: { user: CurrentUser }) {
           <Button variant="ghost" size="icon-sm" onClick={() => setOpen(true)} aria-label="Open navigation">
             <Menu />
           </Button>
-          <Star className="size-4 fill-star text-star" />
+          <Logo className="size-6" />
           <span className="font-semibold">{current?.label ?? "StarWatch"}</span>
         </header>
         <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
