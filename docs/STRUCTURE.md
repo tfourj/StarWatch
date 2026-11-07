@@ -26,16 +26,17 @@ StarWatch/
 ├── .env.example                Example environment for docker compose
 ├── src/
 │   ├── server/
-│   │   ├── index.ts            Entry point: config, migrations, HTTP server, jobs
+│   │   ├── index.ts            Entry point: config, migrations, HTTP server, jobs, tunnel
 │   │   ├── app.ts              Hono app: API routes, static files, SPA fallback
 │   │   ├── config.ts           Env vars and auto-generated secrets in /data
 │   │   ├── logger.ts           JSON logger for stdout
 │   │   ├── log-buffer.ts       Recent log lines in memory for the Logs page
+│   │   ├── webhook-listener.ts Loopback webhook-only server for the Cloudflare tunnel
 │   │   ├── db/                 Drizzle client, schema and migrator
 │   │   ├── auth/               Better Auth setup, first-user registration, session middleware
 │   │   ├── lib/                Encryption, template rendering, small helpers
 │   │   ├── github/             GitHub REST client, rate limits, signatures, stargazer diffing, hooks
-│   │   ├── services/           Settings, repo sync, star event recording, polling, backfill
+│   │   ├── services/           Settings, repo sync, star event recording, polling, backfill, cloudflared tunnel
 │   │   ├── notifications/      Provider interface, providers, dispatcher and retry worker
 │   │   ├── jobs/               Background scheduler
 │   │   └── routes/             API route modules
