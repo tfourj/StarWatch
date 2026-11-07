@@ -39,6 +39,8 @@ describe("parseCloudflaredLine", () => {
 
   test("skips blank lines and keeps unformatted ones", () => {
     expect(parseCloudflaredLine("   ")).toBeNull();
+    expect(parseCloudflaredLine("2026-11-08T10:00:00Z INF ")).toBeNull();
+    expect(parseCloudflaredLine("2026-11-08T10:00:00Z INF +--------------------+")).toBeNull();
     expect(parseCloudflaredLine("plain output")).toMatchObject({ level: "info", message: "plain output" });
   });
 });

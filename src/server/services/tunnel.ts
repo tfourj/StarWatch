@@ -33,9 +33,11 @@ export interface CloudflaredLine {
 export function parseCloudflaredLine(line: string): CloudflaredLine | null {
   const trimmed = line.trim();
   if (!trimmed) return null;
-  const match = trimmed.match(/^\S+\s+(DBG|INF|WRN|ERR|FTL)\s+(.*)$/);
+  const match = trimmed.match(/^\S+\s+(DBG|INF|WRN|ERR|FTL)(?:\s+(.*))?$/);
   const tag = match?.[1];
-  const message = (match ? match[2] : trimmed).replace(/^\|\s*|\s*\|$/g, "").trim();
+  const message = (match ? (match[2] ?? "") : trimmed).replace(/^\|\s*|\s*\|$/g, "").trim();
+  // Banner borders and spacer lines carry nothing.
+  if (/^[+\-=|\s]*$/.test(message)) return null;
   const level = tag === "ERR" || tag === "FTL" ? "error" : tag === "WRN" ? "warn" : tag === "DBG" ? "debug" : "info";
   // Check "Unregistered" first, it contains "registered".
   const event = /Unregistered tunnel connection/i.test(message)
