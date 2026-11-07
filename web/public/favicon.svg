@@ -1,1 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#f5b301" stroke="#b07d00" stroke-width="1.2" stroke-linejoin="round"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .bg { fill: #000; }
+    .star { fill: #fff; stroke: #fff; }
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #fff; }
+      .star { fill: #000; stroke: #000; }
+    }
+  </style>
+  <rect class="bg" width="64" height="64" rx="14" />
+  <path class="star" stroke-width="3" stroke-linejoin="round" d="M32.00 14.10 L36.88 26.89 L50.55 27.57 L39.89 36.16 L43.46 49.38 L32.00 41.90 L20.54 49.38 L24.11 36.16 L13.45 27.57 L27.12 26.89Z" />
+</svg>

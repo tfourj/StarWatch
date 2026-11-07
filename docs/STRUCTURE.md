@@ -36,7 +36,7 @@ StarWatch/
 │   └── shared/                 Types and constants shared by server and frontend
 ├── web/
 │   ├── index.html
-│   ├── public/                 Static assets (favicon)
+│   ├── public/                 Favicon, app icons, web manifest
 │   └── src/
 │       ├── main.tsx            React entry
 │       ├── App.tsx             Router and auth guards
