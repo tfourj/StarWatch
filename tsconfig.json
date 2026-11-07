@@ -14,10 +14,9 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
     "types": ["bun"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["web/src/*"],
-      "@shared/*": ["src/shared/*"]
+      "@/*": ["./web/src/*"],
+      "@shared/*": ["./src/shared/*"]
     }
   },
   "include": ["src", "web/src", "tests", "vite.config.ts", "drizzle.config.ts"]
