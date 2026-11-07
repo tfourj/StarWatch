@@ -166,8 +166,8 @@ export function EventsPage() {
       {error && <ErrorNote>{error.message}</ErrorNote>}
 
       <Card className="py-0">
-        <div className="flex flex-col gap-2 border-b p-4 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-2 border-b p-4 xl:flex-row xl:items-center">
+          <div className="relative min-w-48 flex-1">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Filter by user"
@@ -176,7 +176,7 @@ export function EventsPage() {
               className="pl-9"
             />
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <FilterSelect
               value={filters.repoId}
               onChange={(v) => setParam("repoId", v)}
