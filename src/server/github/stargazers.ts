@@ -1,5 +1,8 @@
 import type { GitHubStargazer } from "./client";
 
+/** GitHub refuses stargazer pages beyond this (40,000 entries at 100 per page). */
+export const MAX_STARGAZER_PAGES = 400;
+
 export interface RemoteStargazer {
   id: number;
   login: string;

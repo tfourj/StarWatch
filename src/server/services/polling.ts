@@ -1,7 +1,13 @@
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { getDb } from "../db/client";
+import { GitHubRateLimitError } from "../github/client";
 import { repositories, stargazers } from "../db/schema";
-import { collectStargazerChanges, toRemoteStargazer, type KnownStargazer } from "../github/stargazers";
+import {
+  collectStargazerChanges,
+  MAX_STARGAZER_PAGES,
+  toRemoteStargazer,
+  type KnownStargazer,
+} from "../github/stargazers";
 import { withLock } from "../lib/locks";
 import { logger } from "../logger";
 import { getGithubClient, updateUserSettings } from "./settings";
@@ -78,48 +84,58 @@ export function pollUser(userId: string): Promise<PollSummary> {
           break;
         }
 
+        if (Math.ceil(r.stargazers_count / 100) > MAX_STARGAZER_PAGES) {
+          log.warn("too many stargazers to poll, use webhook mode", { repo: repo.fullName });
+          continue;
+        }
+
         summary.changed++;
-        const diff = await collectStargazerChanges({
-          known,
-          remoteCount: r.stargazers_count,
-          fetchPage: async (page) => (await client.listStargazersPage(repo.fullName, page)).map(toRemoteStargazer),
-        });
-
-        let running = known.size;
-        for (const s of diff.removed) {
-          running = Math.max(0, running - 1);
-          const event = recordStarEvent(repo, {
-            action: "deleted",
-            actor: { id: s.githubUserId, login: s.login, avatarUrl: s.avatarUrl, htmlUrl: null },
-            starredAt: null,
-            starCount: running,
-            source: "polling",
+        try {
+          const diff = await collectStargazerChanges({
+            known,
+            remoteCount: r.stargazers_count,
+            fetchPage: async (page) => (await client.listStargazersPage(repo.fullName, page)).map(toRemoteStargazer),
           });
-          if (event) summary.events++;
-        }
-        for (const s of diff.added) {
-          running++;
-          const event = recordStarEvent(repo, {
-            action: "created",
-            actor: { id: s.id, login: s.login, avatarUrl: s.avatarUrl, htmlUrl: s.htmlUrl },
-            starredAt: s.starredAt,
-            starCount: running,
-            source: "polling",
-          });
-          if (event) summary.events++;
-        }
 
-        db.update(repositories)
-          .set({ lastPolledAt: new Date(), starCount: r.stargazers_count })
-          .where(eq(repositories.id, repo.id))
-          .run();
-        log.info("repo polled", {
-          repo: repo.fullName,
-          added: diff.added.length,
-          removed: diff.removed.length,
-          pages: diff.pagesFetched,
-          complete: diff.complete,
-        });
+          let running = known.size;
+          for (const s of diff.removed) {
+            running = Math.max(0, running - 1);
+            const event = recordStarEvent(repo, {
+              action: "deleted",
+              actor: { id: s.githubUserId, login: s.login, avatarUrl: s.avatarUrl, htmlUrl: null },
+              starredAt: null,
+              starCount: running,
+              source: "polling",
+            });
+            if (event) summary.events++;
+          }
+          for (const s of diff.added) {
+            running++;
+            const event = recordStarEvent(repo, {
+              action: "created",
+              actor: { id: s.id, login: s.login, avatarUrl: s.avatarUrl, htmlUrl: s.htmlUrl },
+              starredAt: s.starredAt,
+              starCount: running,
+              source: "polling",
+            });
+            if (event) summary.events++;
+          }
+
+          db.update(repositories)
+            .set({ lastPolledAt: new Date(), starCount: r.stargazers_count })
+            .where(eq(repositories.id, repo.id))
+            .run();
+          log.info("repo polled", {
+            repo: repo.fullName,
+            added: diff.added.length,
+            removed: diff.removed.length,
+            pages: diff.pagesFetched,
+            complete: diff.complete,
+          });
+        } catch (err) {
+          log.warn("repo poll failed", { repo: repo.fullName, error: err instanceof Error ? err.message : String(err) });
+          if (err instanceof GitHubRateLimitError) break;
+        }
       }
     } catch (err) {
       log.warn("poll failed", { userId, error: err instanceof Error ? err.message : String(err) });
