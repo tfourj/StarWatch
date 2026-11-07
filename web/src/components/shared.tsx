@@ -15,7 +15,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { DeliveryStatus, HookStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
+export function PageHeader({ title, description, actions }: { title?: string; description?: string; actions?: ReactNode }) {
+  if (!title) {
+    return actions ? <div className="mb-6 flex flex-wrap items-center justify-end gap-2">{actions}</div> : null;
+  }
+
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
