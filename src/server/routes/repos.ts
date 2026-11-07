@@ -7,6 +7,7 @@ import { describeHookError } from "../github/hooks";
 import { HttpError, parseId, readJson } from "../lib/http";
 import { setMonitoringForRepos, syncRepositories, updateRepoMonitoring } from "../services/repos";
 import { getGithubClient, getUserSettings, getWebhookUrl } from "../services/settings";
+import { listStargazers } from "../services/stargazers";
 
 function ownedRepo(userId: string, id: number) {
   const repo = getDb()
@@ -66,6 +67,15 @@ export const repos = new Hono<AuthedEnv>()
     if (body.repoIds !== undefined && !Array.isArray(body.repoIds)) throw new HttpError(400, "repoIds must be an array");
     const repoIds = Array.isArray(body.repoIds) ? body.repoIds.map(Number).filter(Number.isInteger) : undefined;
     return c.json(setMonitoringForRepos(c.get("user").id, body.monitored, repoIds));
+  })
+  .get("/:id/stargazers", (c) => {
+    const result = listStargazers(c.get("user").id, parseId(c.req.param("id")), {
+      page: Number(c.req.query("page") ?? 1) || 1,
+      pageSize: Number(c.req.query("pageSize") ?? 50) || 50,
+      q: c.req.query("q"),
+    });
+    if (!result) throw new HttpError(404, "Repository not found");
+    return c.json(result);
   })
   .patch("/:id", async (c) => {
     const userId = c.get("user").id;
