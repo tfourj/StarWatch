@@ -12,6 +12,7 @@ import { channelRoutes } from "./routes/channels";
 import { dashboard } from "./routes/dashboard";
 import { events } from "./routes/events";
 import { health } from "./routes/health";
+import { logs } from "./routes/logs";
 import { repos } from "./routes/repos";
 import { settingsRoutes } from "./routes/settings";
 import { setup } from "./routes/setup";
@@ -59,6 +60,8 @@ export function createApp() {
   app.use("/api/*", async (c, next) => {
     const started = Date.now();
     await next();
+    // The Logs page and healthcheck poll constantly; logging them would bury everything else.
+    if (c.req.path === "/api/logs" || c.req.path === "/api/health") return;
     const level = c.res.status >= 500 && c.res.status !== 502 ? "error" : c.res.status >= 400 ? "warn" : "debug";
     log[level]("request", {
       method: c.req.method,
@@ -86,6 +89,8 @@ export function createApp() {
   authed.use("/users/*", requireAdmin);
   authed.use("/users", requireAdmin);
   authed.route("/users", users);
+  authed.use("/logs", requireAdmin);
+  authed.route("/logs", logs);
   app.route("/api", authed as unknown as Hono<AppEnv>);
 
   app.all("/api/*", (c) => c.json({ error: "Not found" }, 404));
