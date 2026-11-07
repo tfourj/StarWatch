@@ -1,0 +1,24 @@
+services:
+  starwatch:
+    build: .
+    image: starwatch:latest
+    container_name: starwatch
+    restart: unless-stopped
+    ports:
+      - "${PORT:-4321}:${PORT:-4321}"
+    environment:
+      PORT: ${PORT:-4321}
+      BASE_URL: ${BASE_URL:-http://localhost:4321}
+      # Leave empty to auto-generate into /data/secrets.json on first run
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:-}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false}
+      TZ: ${TZ:-UTC}
+      # Optional GitHub OAuth login
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+    volumes:
+      - starwatch-data:/data
+
+volumes:
+  starwatch-data:
