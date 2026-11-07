@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
-    <img src="docs/assets/logo-light.png" alt="StarWatch logo" width="96">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-white.png">
+    <img src="docs/assets/logo-black.png" alt="StarWatch logo" width="96">
   </picture>
 </p>
 
