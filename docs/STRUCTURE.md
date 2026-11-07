@@ -39,7 +39,7 @@ StarWatch/
 │   │   ├── notifications/      Provider interface, providers, dispatcher and retry worker
 │   │   ├── jobs/               Background scheduler
 │   │   └── routes/             API route modules
-│   └── shared/                 Types and constants shared by server and frontend
+│   └── shared/                 Code shared by server and frontend (templates, channels, frequency, demo data)
 ├── web/
 │   ├── index.html
 │   ├── public/                 Favicon, app icons, web manifest
@@ -50,6 +50,7 @@ StarWatch/
 │       ├── lib/                API client, auth client, response types, utilities
 │       ├── hooks/              Session and setup-status queries
 │       ├── components/ui/      shadcn/ui components
+│       ├── demo/               In-browser fake API for the static demo build
 │       ├── components/repos/   Repository dialogs (add repositories, stargazers)
 │       ├── components/         Layout, sidebar, shared widgets
 │       └── pages/              Dashboard, Repositories, Events, Channels, Logs, Settings, auth pages

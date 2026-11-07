@@ -53,6 +53,26 @@ bun run build        # frontend into dist/web, server bundle into dist/server
 bun run db:generate  # create a migration after editing src/server/db/schema.ts
 ```
 
+## Demo site
+
+`bun run build:demo` builds a static demo into `dist/demo`. It is the normal frontend with the API answered in the
+browser by `web/src/demo/api.ts`, using the same made-up data as the screenshots. Changes stay in memory and reset on
+reload; syncing, pings, test notifications and token changes show a "not available in the demo" message. Normal
+builds and the Docker image do not include any of it.
+
+To host it on Cloudflare Pages, create a Pages project from the GitHub repository with:
+
+| Setting                | Value                                               |
+| ---------------------- | --------------------------------------------------- |
+| Build command          | `bun install --frozen-lockfile && bun run build:demo` |
+| Build output directory | `dist/demo`                                         |
+| Root directory         | `/`                                                 |
+
+Pages then redeploys on every push. Set `BUN_VERSION` in the project's environment variables to pin a Bun version.
+The build includes a `_redirects` file so routes like `/events` work on reload. Any other static host works too.
+
+Run it locally with `bun run dev:demo`.
+
 ## Screenshots
 
 The README screenshots are generated from made-up demo data. Only Docker is needed:
