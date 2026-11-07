@@ -12,6 +12,9 @@
   Get notified when someone stars or unstars one of your repositories.
 </p>
 
+> [!NOTE]
+> This app was developed using AI tools.
+
 ## Features
 
 - Instant alerts through GitHub webhooks, with polling as a fallback
@@ -28,6 +31,10 @@
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Repositories](docs/screenshots/repositories.png) |
 | **Events** | **Channels** |
 | ![Events](docs/screenshots/events.png) | ![Channels](docs/screenshots/channels.png) |
+
+## Tech Stack
+
+Bun, Hono, SQLite (Drizzle), Better Auth, React, Tailwind CSS
 
 ## Install with Docker Compose
 
