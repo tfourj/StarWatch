@@ -5,6 +5,7 @@ import { getDb } from "../db/client";
 import { channels, REPO_MODES, repositories, repositoryChannels } from "../db/schema";
 import { describeHookError } from "../github/hooks";
 import { HttpError, parseId, readJson } from "../lib/http";
+import { isBackfilling } from "../services/backfill";
 import { setMonitoringForRepos, syncRepositories, updateRepoMonitoring } from "../services/repos";
 import { getGithubClient, getUserSettings, getWebhookUrl } from "../services/settings";
 import { listStargazers } from "../services/stargazers";
@@ -43,6 +44,7 @@ export const repos = new Hono<AuthedEnv>()
     return c.json({
       repos: rows.map((r) => ({
         ...r,
+        importing: isBackfilling(r.id),
         channelIds: links.filter((l) => l.repositoryId === r.id).map((l) => l.channelId),
       })),
       channels: userChannels,

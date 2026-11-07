@@ -1,6 +1,7 @@
 import { and, count, desc, eq, like, sql } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { repositories, stargazers } from "../db/schema";
+import { isBackfilling } from "./backfill";
 
 export interface StargazerListOptions {
   page?: number;
@@ -53,6 +54,7 @@ export function listStargazers(userId: string, repoId: number, options: Stargaze
       starCount: repo.starCount,
       backfilledAt: repo.backfilledAt,
       backfillError: repo.backfillError,
+      importing: isBackfilling(repo.id),
     },
   };
 }

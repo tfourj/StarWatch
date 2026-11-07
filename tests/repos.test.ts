@@ -143,6 +143,13 @@ describe("listStargazers", () => {
     expect(result.items.map((s) => s.login).sort()).toEqual(["user1", "user10", "user11", "user12"]);
   });
 
+  test("reports import progress fields", () => {
+    const repo = addRepo("u1", 1, { backfillError: "403 Resource not accessible" });
+    const result = listStargazers("u1", repo.id)!;
+    expect(result.repo.importing).toBe(false);
+    expect(result.repo.backfillError).toBe("403 Resource not accessible");
+  });
+
   test("returns null for another user's repo", () => {
     const repo = addRepo("u2", 1);
     expect(listStargazers("u1", repo.id)).toBeNull();

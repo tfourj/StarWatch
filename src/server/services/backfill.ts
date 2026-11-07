@@ -3,7 +3,7 @@ import { getDb } from "../db/client";
 import { repositories, stargazers, type Repository } from "../db/schema";
 import { GitHubRateLimitError, type GitHubClient } from "../github/client";
 import { MAX_STARGAZER_PAGES, toRemoteStargazer, type RemoteStargazer } from "../github/stargazers";
-import { withLock } from "../lib/locks";
+import { isLocked, withLock } from "../lib/locks";
 import { logger } from "../logger";
 import { getGithubClient } from "./settings";
 
@@ -27,11 +27,20 @@ export async function fetchAllStargazers(client: GitHubClient, fullName: string)
 }
 
 /** Import the current stargazers silently so later diffs and webhooks only report new activity. */
+const lockKey = (repoId: number) => `backfill:${repoId}`;
+
+/** True while the stargazer import for this repo is running. */
+export function isBackfilling(repoId: number): boolean {
+  return isLocked(lockKey(repoId));
+}
+
 export function backfillRepository(repo: Repository): Promise<void> {
-  return withLock(`backfill:${repo.id}`, async () => {
+  return withLock(lockKey(repo.id), async () => {
     const client = getGithubClient(repo.userId);
     if (!client) return;
     const db = getDb();
+    // Clear the previous attempt's error so the UI shows the retry as in progress, not failed.
+    db.update(repositories).set({ backfillError: null }).where(eq(repositories.id, repo.id)).run();
     try {
       const { all, truncated } = await fetchAllStargazers(client, repo.fullName);
       const note = truncated
