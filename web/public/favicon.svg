@@ -2,7 +2,7 @@
   <style>
     .bg { fill: #000; }
     .star { fill: #fff; stroke: #fff; }
-    @media (prefers-color-scheme: light) {
+    @media (prefers-color-scheme: dark) {
       .bg { fill: #fff; }
       .star { fill: #000; stroke: #000; }
     }
