@@ -18,11 +18,22 @@ docker run -d --name starwatch -p 4321:4321 -e BASE_URL=https://starwatch.exampl
 CI (`.github/workflows/ci.yml`) runs the typecheck, tests and build on every push and pull request, and publishes
 `ghcr.io/tfourj/starwatch` for `linux/amd64` and `linux/arm64` from `main` and version tags.
 
-| Tag              | Built from                    |
-| ---------------- | ----------------------------- |
-| `latest`         | `main`                        |
-| `1.2.3`, `1.2`   | Git tags like `v1.2.3`        |
-| `sha-<commit>`   | Every push                    |
+| Tag                        | Built from                                   |
+| -------------------------- | -------------------------------------------- |
+| `latest`                   | The newest release                           |
+| `v1.2.3`, `v1.2`, `v1`     | Git tags like `v1.2.3`                        |
+| `v1.3.0-rc.1`              | Pre-release tags (exact tag only)            |
+| `main`                     | Every push to `main` (unreleased)            |
+| `sha-<commit>`             | Every push                                   |
+
+To release, bump `version` in `package.json`, add the release to `CHANGELOG.md`, commit, then tag and push:
+
+```bash
+git tag -a v1.2.3 -m "StarWatch v1.2.3"
+git push origin main v1.2.3
+```
+
+CI fails if the tag does not match `package.json`.
 
 ## Development
 
