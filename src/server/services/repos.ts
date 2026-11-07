@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { repositories, type Repository } from "../db/schema";
 import { GitHubRateLimitError, type GitHubClient, type GitHubRepo } from "../github/client";
@@ -177,4 +177,76 @@ export async function updateRepoMonitoring(
     if (updated.monitored && !updated.backfilledAt) void backfillRepository(updated);
   }
   return db.select().from(repositories).where(eq(repositories.id, repoId)).get() ?? null;
+}
+
+export interface BulkMonitoringResult {
+  /** Repos whose monitoring flag changed. */
+  updated: number;
+  /** Repos whose webhook is being created or removed in the background. */
+  hooksPending: number;
+}
+
+/**
+ * Turn monitoring on or off for all of a user's repos, or only `repoIds`.
+ * Rows change immediately; webhooks are created or removed in the background.
+ */
+export function setMonitoringForRepos(
+  userId: string,
+  monitored: boolean,
+  repoIds?: number[],
+): BulkMonitoringResult {
+  const db = getDb();
+  const scope = and(
+    eq(repositories.userId, userId),
+    isNull(repositories.removedAt),
+    repoIds ? inArray(repositories.id, repoIds.length ? repoIds : [-1]) : undefined,
+  );
+  const rows = db.select().from(repositories).where(scope).all();
+
+  const changed = rows.filter((r) => r.monitored !== monitored);
+  // Turning off also cleans up hooks left on repos that were already off.
+  const needsHookWork = rows.filter(
+    (r) => r.monitored !== monitored || (!monitored && (r.hookId !== null || r.hookStatus !== "none")),
+  );
+
+  if (changed.length) {
+    db.update(repositories)
+      .set({ monitored })
+      .where(inArray(repositories.id, changed.map((r) => r.id)))
+      .run();
+  }
+
+  const ids = needsHookWork.map((r) => r.id);
+  if (ids.length) void syncHooksFor(userId, ids);
+  log.info("bulk monitoring change", { userId, monitored, updated: changed.length, hooksPending: ids.length });
+  return { updated: changed.length, hooksPending: ids.length };
+}
+
+const hookQueues = new Map<string, Promise<void>>();
+
+/** Queue webhook updates per user so quick on/off toggles run in order. Rows are re-read when the work runs. */
+function syncHooksFor(userId: string, repoIds: number[]): Promise<void> {
+  const previous = hookQueues.get(userId) ?? Promise.resolve();
+  const next = previous
+    .then(() => runHookSync(userId, repoIds))
+    .catch((err) => log.error("bulk webhook update failed", { userId, err }));
+  hookQueues.set(userId, next);
+  void next.finally(() => {
+    if (hookQueues.get(userId) === next) hookQueues.delete(userId);
+  });
+  return next;
+}
+
+async function runHookSync(userId: string, repoIds: number[]) {
+  const client = getGithubClient(userId);
+  if (!client) return;
+  const repos = getDb().select().from(repositories).where(inArray(repositories.id, repoIds)).all();
+  for (const repo of repos) {
+    if (client.shouldBackOff(3)) {
+      log.warn("rate limit low, the next sync will finish the remaining webhooks", { userId });
+      break;
+    }
+    await syncRepoHook(client, repo).catch((err) => log.error("webhook update failed", { repo: repo.fullName, err }));
+    if (repo.monitored && !repo.backfilledAt) void backfillRepository(repo);
+  }
 }

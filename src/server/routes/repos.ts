@@ -5,7 +5,7 @@ import { getDb } from "../db/client";
 import { channels, REPO_MODES, repositories, repositoryChannels } from "../db/schema";
 import { describeHookError } from "../github/hooks";
 import { HttpError, parseId, readJson } from "../lib/http";
-import { syncRepositories, updateRepoMonitoring } from "../services/repos";
+import { setMonitoringForRepos, syncRepositories, updateRepoMonitoring } from "../services/repos";
 import { getGithubClient, getUserSettings, getWebhookUrl } from "../services/settings";
 
 function ownedRepo(userId: string, id: number) {
@@ -59,6 +59,13 @@ export const repos = new Hono<AuthedEnv>()
     } catch (err) {
       throw new HttpError(502, err instanceof Error ? err.message : String(err));
     }
+  })
+  .post("/bulk", async (c) => {
+    const body = await readJson<{ monitored?: unknown; repoIds?: unknown }>(c);
+    if (typeof body.monitored !== "boolean") throw new HttpError(400, "monitored must be true or false");
+    if (body.repoIds !== undefined && !Array.isArray(body.repoIds)) throw new HttpError(400, "repoIds must be an array");
+    const repoIds = Array.isArray(body.repoIds) ? body.repoIds.map(Number).filter(Number.isInteger) : undefined;
+    return c.json(setMonitoringForRepos(c.get("user").id, body.monitored, repoIds));
   })
   .patch("/:id", async (c) => {
     const userId = c.get("user").id;
