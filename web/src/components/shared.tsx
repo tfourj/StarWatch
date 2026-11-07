@@ -164,6 +164,25 @@ export function Spinner({ className }: { className?: string }) {
   return <Loader2 className={cn("size-4 animate-spin", className)} />;
 }
 
+export function LoadingPill({ show, label = "Updating" }: { show: boolean; label?: string }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-hidden={!show}
+      className={cn(
+        "pointer-events-none fixed top-3 left-1/2 z-40 -translate-x-1/2 md:left-[calc(50%+8rem)]",
+        "flex items-center gap-2 rounded-full bg-black px-3.5 py-1.5 text-xs font-medium text-white",
+        "shadow-lg ring-1 ring-white/10 transition-all duration-200 ease-out",
+        show ? "translate-y-0 scale-100 opacity-100" : "-translate-y-2 scale-90 opacity-0",
+      )}
+    >
+      <Spinner className="size-3.5" />
+      {label}
+    </div>
+  );
+}
+
 export function ConfirmDialog({
   open,
   onOpenChange,

@@ -1,6 +1,6 @@
 import { Download, Pause, Play, ScrollText, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { EmptyState, ErrorNote, PageHeader, Spinner } from "@/components/shared";
+import { EmptyState, ErrorNote, LoadingPill, PageHeader, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -169,6 +169,7 @@ export function LogsPage() {
 
   return (
     <>
+      <LoadingPill show={loading && entries.length > 0} />
       <PageHeader
         title="Logs"
         actions={
@@ -243,7 +244,7 @@ export function LogsPage() {
           )}
         </div>
 
-        {loading ? (
+        {loading && entries.length === 0 ? (
           <div className="flex justify-center p-10">
             <Spinner className="text-muted-foreground" />
           </div>

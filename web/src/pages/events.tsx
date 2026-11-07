@@ -3,7 +3,7 @@ import { Activity, ChevronLeft, ChevronRight, RotateCcw, Search } from "lucide-r
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
-import { ActionBadge, DeliveryBadge, EmptyState, ErrorNote, PageHeader, Spinner, UserAvatar } from "@/components/shared";
+import { ActionBadge, DeliveryBadge, EmptyState, ErrorNote, LoadingPill, Spinner, UserAvatar } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -158,9 +158,7 @@ export function EventsPage() {
 
   return (
     <>
-      <PageHeader
-        actions={isFetching && !isPending ? <Spinner className="text-muted-foreground" /> : undefined}
-      />
+      <LoadingPill show={isFetching && !isPending} />
       {error && <ErrorNote>{error.message}</ErrorNote>}
 
       <Card className="py-0">
