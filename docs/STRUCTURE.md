@@ -15,7 +15,9 @@ StarWatch/
 ├── vite.config.ts              Frontend build and dev proxy
 ├── docs/
 │   ├── STRUCTURE.md            This file
-│   └── DATABASE.md             Database schema
+│   ├── DATABASE.md             Database schema
+│   ├── CONFIGURATION.md        Setup, env vars, channels, reverse proxy notes
+│   └── BUILD.md                Building from source, CI images, development
 ├── .env.example                Example environment for docker compose
 ├── src/
 │   ├── server/
