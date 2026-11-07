@@ -54,7 +54,6 @@ Values marked *encrypted* are AES-256-GCM ciphertext (key derived from `ENCRYPTI
 | `star_count`        | Last known `stargazers_count`                              |
 | `monitored`         | Monitoring on or off                                       |
 | `mode`              | `webhook`, `polling` or `both`                             |
-| `all_channels`      | Notify every channel (otherwise use `repository_channels`) |
 | `hook_id`           | GitHub webhook id                                          |
 | `hook_status`       | `none`, `active`, `missing`, `error`                       |
 | `hook_error`        | Last webhook error                                         |
@@ -63,7 +62,7 @@ Values marked *encrypted* are AES-256-GCM ciphertext (key derived from `ENCRYPTI
 | `last_polled_at`    |                                                            |
 | `removed_at`        | Set when the repo no longer shows up on GitHub             |
 
-**`repository_channels`** `(repository_id, channel_id)` channel assignment when `all_channels` is off
+**`repository_channels`** `(repository_id, channel_id)` repos assigned to a channel when its `all_repos` is off
 
 **`stargazers`** current stargazers per repo, used for diffing and dedupe
 

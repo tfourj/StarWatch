@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "1615391f-6ba8-4ffd-8a0f-20f8bbfe3306",
+  "id": "1c9f7492-da7c-441e-ae90-13ae6074f0a1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -606,14 +606,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'webhook'"
-        },
-        "all_channels": {
-          "name": "all_channels",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
         },
         "hook_id": {
           "name": "hook_id",

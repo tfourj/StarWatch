@@ -84,7 +84,6 @@ CREATE TABLE `repositories` (
 	`star_count` integer DEFAULT 0 NOT NULL,
 	`monitored` integer DEFAULT false NOT NULL,
 	`mode` text DEFAULT 'webhook' NOT NULL,
-	`all_channels` integer DEFAULT true NOT NULL,
 	`hook_id` integer,
 	`hook_status` text DEFAULT 'none' NOT NULL,
 	`hook_error` text,

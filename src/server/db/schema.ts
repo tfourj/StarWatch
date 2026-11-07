@@ -118,7 +118,6 @@ export const repositories = sqliteTable(
     starCount: integer("star_count").notNull().default(0),
     monitored: integer("monitored", { mode: "boolean" }).notNull().default(false),
     mode: text("mode", { enum: REPO_MODES }).notNull().default("webhook"),
-    allChannels: integer("all_channels", { mode: "boolean" }).notNull().default(true),
     hookId: integer("hook_id"),
     hookStatus: text("hook_status", { enum: HOOK_STATUSES }).notNull().default("none"),
     hookError: text("hook_error"),
