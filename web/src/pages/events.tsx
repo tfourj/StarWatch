@@ -160,7 +160,6 @@ export function EventsPage() {
     <>
       <PageHeader
         title="Events"
-        description="Every star and unstar, with the delivery status for each channel."
         actions={isFetching && !isPending ? <Spinner className="text-muted-foreground" /> : undefined}
       />
       {error && <ErrorNote>{error.message}</ErrorNote>}

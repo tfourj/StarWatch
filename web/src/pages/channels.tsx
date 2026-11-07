@@ -503,7 +503,7 @@ export function ChannelsPage() {
 
   return (
     <>
-      <PageHeader title="Channels" description="Where StarWatch sends notifications." actions={addButton} />
+      <PageHeader title="Channels" actions={addButton} />
       {error && <ErrorNote>{error.message}</ErrorNote>}
 
       {isPending ? (

@@ -792,7 +792,7 @@ export function SettingsPage({ user }: { user: CurrentUser }) {
 
   return (
     <>
-      <PageHeader title="Settings" description="GitHub access, monitoring, templates and accounts." />
+      <PageHeader title="Settings" />
       {error && <ErrorNote>{error.message}</ErrorNote>}
       <Tabs value={tab} onValueChange={(value) => setParams({ tab: value }, { replace: true })}>
         <TabsList>
