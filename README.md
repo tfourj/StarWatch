@@ -13,9 +13,11 @@ repositories, through Discord, Telegram, ntfy, Gotify, Slack, Pushover, email or
 
 ## Quick start
 
+Images are published to `ghcr.io/tfourj/starwatch` for `linux/amd64` and `linux/arm64`.
+
 ### docker compose
 
-From a checkout of this repository:
+Download [docker-compose.yml](docker-compose.yml), then:
 
 ```bash
 BASE_URL=https://starwatch.example.com docker compose up -d
@@ -26,15 +28,28 @@ Or put the variables in a `.env` file next to `docker-compose.yml` (see `.env.ex
 ### docker run
 
 ```bash
-docker build -t starwatch .
 docker run -d --name starwatch \
   -p 4321:4321 \
   -e BASE_URL=https://starwatch.example.com \
   -e TZ=Europe/Berlin \
   -v starwatch-data:/data \
   --restart unless-stopped \
-  starwatch
+  ghcr.io/tfourj/starwatch:latest
 ```
+
+### Build from source
+
+```bash
+BASE_URL=https://starwatch.example.com docker compose -f docker-compose-local.yml up -d --build
+```
+
+### Image tags
+
+| Tag              | Built from                    |
+| ---------------- | ----------------------------- |
+| `latest`         | `main`                        |
+| `1.2.3`, `1.2`   | Git tags like `v1.2.3`        |
+| `sha-<commit>`   | Every push                    |
 
 Open `BASE_URL` in a browser. With no users in the database, every page redirects to `/register`. The first account
 you create becomes the admin and registration closes afterwards.
@@ -122,7 +137,7 @@ and visible in **Events**, where you can also retry by hand.
 
 - Set `BASE_URL` to the public HTTPS URL. It is used for webhook URLs and auth callbacks, and turns on secure cookies.
 - `X-Forwarded-*`, `X-Real-IP` and `CF-Connecting-IP` are trusted for client IPs.
-- **Coolify:** deploy from this repository with the Dockerfile or `docker-compose.yml` build pack, set the domain,
+- **Coolify:** deploy `docker-compose.yml` (published image) or build from this repository with the Dockerfile, set the domain,
   add the env vars and keep `/data` on a persistent volume. The container exposes port 4321.
 - **Cloudflare:** GitHub's webhook deliveries come from GitHub's servers and can be blocked as bots. Disable
   **Bot Fight Mode**, or add a WAF custom rule that skips security features for
@@ -155,6 +170,9 @@ bun run typecheck    # TypeScript
 bun run build        # frontend into dist/web, server bundle into dist/server
 bun run db:generate  # create a migration after editing src/server/db/schema.ts
 ```
+
+CI (`.github/workflows/ci.yml`) runs the typecheck, tests and build on every push and pull request, and publishes
+the image to GHCR from `main` and version tags.
 
 See [docs/STRUCTURE.md](docs/STRUCTURE.md) for the code layout and [docs/DATABASE.md](docs/DATABASE.md) for the schema.
 
