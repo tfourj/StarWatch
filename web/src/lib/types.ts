@@ -1,3 +1,4 @@
+import type { FrequencyTier } from "@shared/frequency";
 import type { MessageTemplates } from "@shared/templates";
 
 export type Role = "admin" | "user";
@@ -196,6 +197,7 @@ export interface Channel {
   notifyStar: boolean;
   notifyUnstar: boolean;
   milestoneEvery: number | null;
+  frequencyTiers: FrequencyTier[] | null;
   templates: Partial<MessageTemplates> | null;
   config: Record<string, string | number | boolean>;
   secrets: Record<string, string | null>;

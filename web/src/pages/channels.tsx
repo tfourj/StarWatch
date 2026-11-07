@@ -4,6 +4,12 @@ import { TEMPLATE_VARIABLES, type MessageTemplates } from "@shared/templates";
 import { Bell, Pencil, Plus, Send, Trash2 } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import {
+  defaultTierDrafts,
+  FrequencySettings,
+  type FrequencyMode,
+  type TierDraft,
+} from "@/components/frequency-settings";
 import { ConfirmDialog, EmptyState, ErrorNote, PageHeader, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +44,9 @@ interface FormState {
   repoIds: number[];
   notifyStar: boolean;
   notifyUnstar: boolean;
+  frequencyMode: FrequencyMode;
   milestoneEvery: string;
+  tiers: TierDraft[];
   templates: Partial<MessageTemplates>;
 }
 
@@ -66,7 +74,11 @@ function initialState(channel: Channel | null): FormState {
       repoIds: channel.repoIds,
       notifyStar: channel.notifyStar,
       notifyUnstar: channel.notifyUnstar,
+      frequencyMode: channel.frequencyTiers?.length ? "dynamic" : channel.milestoneEvery ? "milestone" : "every",
       milestoneEvery: channel.milestoneEvery ? String(channel.milestoneEvery) : "",
+      tiers: channel.frequencyTiers?.length
+        ? channel.frequencyTiers.map((t) => ({ from: String(t.from), every: String(t.every) }))
+        : defaultTierDrafts(),
       templates: channel.templates ?? {},
     };
   }
@@ -79,7 +91,9 @@ function initialState(channel: Channel | null): FormState {
     repoIds: [],
     notifyStar: true,
     notifyUnstar: true,
+    frequencyMode: "every",
     milestoneEvery: "",
+    tiers: defaultTierDrafts(),
     templates: {},
   };
 }
@@ -212,7 +226,11 @@ function ChannelDialog({
       repoIds: form.repoIds,
       notifyStar: form.notifyStar,
       notifyUnstar: form.notifyUnstar,
-      milestoneEvery: form.milestoneEvery ? Number(form.milestoneEvery) : null,
+      milestoneEvery: form.frequencyMode === "milestone" && form.milestoneEvery ? Number(form.milestoneEvery) : null,
+      frequencyTiers:
+        form.frequencyMode === "dynamic"
+          ? form.tiers.map((t) => ({ from: Number(t.from), every: Number(t.every) }))
+          : null,
       templates: form.templates,
     });
   }
@@ -300,20 +318,6 @@ function ChannelDialog({
                   Unstars
                 </Label>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="milestone">Milestones only</Label>
-                <Input
-                  id="milestone"
-                  type="number"
-                  min={2}
-                  placeholder="Off (every star)"
-                  value={form.milestoneEvery}
-                  onChange={(e) => set("milestoneEvery", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Notify only when the star count hits a multiple, for example every 10 or 100 stars.
-                </p>
-              </div>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -352,6 +356,15 @@ function ChannelDialog({
               </div>
             </div>
           </div>
+
+          <FrequencySettings
+            mode={form.frequencyMode}
+            milestoneEvery={form.milestoneEvery}
+            tiers={form.tiers}
+            onModeChange={(mode) => set("frequencyMode", mode)}
+            onMilestoneChange={(value) => set("milestoneEvery", value)}
+            onTiersChange={(tiers) => set("tiers", tiers)}
+          />
 
           <details className="group rounded-md border px-4 py-3">
             <summary className="cursor-pointer text-sm font-medium">Custom message templates</summary>
@@ -399,6 +412,7 @@ function describeFilters(channel: Channel) {
   else if (channel.notifyUnstar) parts.push("Unstars only");
   else parts.push("No events");
   if (channel.milestoneEvery) parts.push(`every ${channel.milestoneEvery} stars`);
+  if (channel.frequencyTiers?.length) parts.push("dynamic frequency");
   parts.push(channel.allRepos ? "all repositories" : `${channel.repoIds.length} repositories`);
   return parts.join(" · ");
 }
