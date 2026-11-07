@@ -8,6 +8,11 @@ export class ApiError extends Error {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  // The static demo answers requests in the browser. The branch is removed from normal builds.
+  if (__DEMO__) {
+    const { demoRequest } = await import("@/demo/api");
+    return demoRequest<T>(method, path, body);
+  }
   const res = await fetch(`/api${path}`, {
     method,
     credentials: "include",

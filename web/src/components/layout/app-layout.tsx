@@ -15,7 +15,9 @@ import {
 } from "lucide-react";
 import { Suspense, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { ChangelogDialog } from "@/components/changelog-dialog";
+import { DemoBanner } from "@/components/demo-banner";
 import { GitHubIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
 import { useTheme } from "@/components/theme-provider";
@@ -33,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { authClient } from "@/lib/auth-client";
+import { IS_DEMO } from "@/lib/env";
 import type { CurrentUser } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -113,6 +116,10 @@ function UserMenu({ user }: { user: CurrentUser }) {
   const queryClient = useQueryClient();
 
   async function signOut() {
+    if (IS_DEMO) {
+      toast.info("Signing out is disabled in the demo.");
+      return;
+    }
     await authClient.signOut();
     queryClient.clear();
     navigate("/login", { replace: true });
@@ -240,6 +247,7 @@ export function AppLayout({ user }: { user: CurrentUser }) {
       </Sheet>
 
       <div className="md:pl-64">
+        {IS_DEMO && <DemoBanner />}
         <header
           className={
             "sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur md:hidden"
