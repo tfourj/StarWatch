@@ -5,7 +5,7 @@ import { GitHubRateLimitError, type GitHubClient, type GitHubRepo } from "../git
 import { ensureHook, removeHook, type HookResult } from "../github/hooks";
 import { withLock } from "../lib/locks";
 import { logger } from "../logger";
-import { backfillRepository } from "./backfill";
+import { backfillRepository, markImportQueued } from "./backfill";
 import { getGithubClient, getUserSettings, getWebhookSecret, getWebhookUrl, updateUserSettings } from "./settings";
 
 const log = logger.child("sync");
@@ -125,6 +125,8 @@ export function syncRepositories(userId: string): Promise<SyncSummary> {
         .where(and(eq(repositories.userId, userId), isNull(repositories.removedAt)))
         .all();
       summary.repos = repos.length;
+      const toImport = repos.filter((r) => r.monitored && !r.backfilledAt);
+      markImportQueued(toImport.map((r) => r.id));
 
       for (const repo of repos) {
         if (client.shouldBackOff(3)) {
@@ -142,7 +144,7 @@ export function syncRepositories(userId: string): Promise<SyncSummary> {
       log.info("sync complete", { userId, ...summary });
 
       // Initial imports run after the sync so the UI is not blocked.
-      for (const repo of repos.filter((r) => r.monitored && !r.backfilledAt)) void backfillRepository(repo);
+      for (const repo of toImport) void backfillRepository(repo);
       return summary;
     } catch (err) {
       const message =
@@ -169,6 +171,7 @@ export async function updateRepoMonitoring(
   if (!repo) return null;
 
   db.update(repositories).set(patch).where(eq(repositories.id, repoId)).run();
+  if (patch.monitored) markImportQueued([repoId]);
   const updated = db.select().from(repositories).where(eq(repositories.id, repoId)).get()!;
 
   const client = getGithubClient(userId);
@@ -215,6 +218,7 @@ export function setMonitoringForRepos(
       .set(mode === undefined ? { monitored } : { monitored, mode })
       .where(inArray(repositories.id, changed.map((r) => r.id)))
       .run();
+    if (monitored) markImportQueued(changed.map((r) => r.id));
   }
 
   const ids = needsHookWork.map((r) => r.id);

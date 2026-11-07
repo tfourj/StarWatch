@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { repositories, stargazers, type Repository } from "../db/schema";
 import { GitHubRateLimitError, type GitHubClient } from "../github/client";
@@ -28,6 +28,19 @@ export async function fetchAllStargazers(client: GitHubClient, fullName: string)
 
 /** Import the current stargazers silently so later diffs and webhooks only report new activity. */
 const lockKey = (repoId: number) => `backfill:${repoId}`;
+
+/**
+ * Clear the previous attempt's error for repos about to be imported, so the UI shows them as queued
+ * instead of failed while they wait their turn (webhook setup runs first, one repo at a time).
+ */
+export function markImportQueued(repoIds: number[]) {
+  if (repoIds.length === 0) return;
+  getDb()
+    .update(repositories)
+    .set({ backfillError: null })
+    .where(and(inArray(repositories.id, repoIds), isNull(repositories.backfilledAt)))
+    .run();
+}
 
 /** True while the stargazer import for this repo is running. */
 export function isBackfilling(repoId: number): boolean {
