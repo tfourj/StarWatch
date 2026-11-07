@@ -3,7 +3,7 @@ import { AlertTriangle, BookMarked, CalendarDays, Star, TrendingUp } from "lucid
 import { Link } from "react-router";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { GitHubIcon } from "@/components/icons";
-import { ActionBadge, EmptyState, ErrorNote, PageHeader, StatCard, UserAvatar } from "@/components/shared";
+import { ActionBadge, EmptyState, ErrorNote, StatCard, UserAvatar } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -209,7 +209,6 @@ export function DashboardPage() {
 
   return (
     <>
-      <PageHeader title="Dashboard" />
       {error && <ErrorNote>{error.message}</ErrorNote>}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

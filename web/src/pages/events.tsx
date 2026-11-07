@@ -159,7 +159,6 @@ export function EventsPage() {
   return (
     <>
       <PageHeader
-        title="Events"
         actions={isFetching && !isPending ? <Spinner className="text-muted-foreground" /> : undefined}
       />
       {error && <ErrorNote>{error.message}</ErrorNote>}
