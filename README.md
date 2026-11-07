@@ -1,6 +1,16 @@
-# StarWatch
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
+    <img src="docs/assets/logo-light.png" alt="StarWatch logo" width="96">
+  </picture>
+</p>
 
-Self-hosted star alerts for your GitHub repos. Get notified when someone stars or unstars one of your repositories.
+<h1 align="center">StarWatch</h1>
+
+<p align="center">
+  Self-hosted star alerts for your GitHub repos.<br>
+  Get notified when someone stars or unstars one of your repositories.
+</p>
 
 ## Features
 
@@ -10,6 +20,14 @@ Self-hosted star alerts for your GitHub repos. Get notified when someone stars o
 - Custom message templates
 - Dashboard with stats, chart and event log
 - Dark and light mode, multiple users
+
+## Screenshots
+
+| Dashboard | Repositories |
+| --- | --- |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Repositories](docs/screenshots/repositories.png) |
+| **Events** | **Channels** |
+| ![Events](docs/screenshots/events.png) | ![Channels](docs/screenshots/channels.png) |
 
 ## Install with Docker Compose
 
