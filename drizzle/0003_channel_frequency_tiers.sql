@@ -1,0 +1,1 @@
+ALTER TABLE `channels` ADD `frequency_tiers` text;

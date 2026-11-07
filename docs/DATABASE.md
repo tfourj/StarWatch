@@ -104,6 +104,7 @@ Values marked *encrypted* are AES-256-GCM ciphertext (key derived from `ENCRYPTI
 | `all_repos`      | Applies to every repo, otherwise `repository_channels` |
 | `notify_star`, `notify_unstar` | Event filters                          |
 | `milestone_every` | Only notify when the star count is a multiple of N  |
+| `frequency_tiers` | Dynamic frequency: JSON `[{ from, every }]`, null when off |
 | `templates`      | Optional JSON template overrides                     |
 
 **`notification_deliveries`** one row per event and channel

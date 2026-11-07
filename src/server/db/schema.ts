@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import type { FrequencyTier } from "../../shared/frequency";
 
 const timestamps = {
   createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -208,6 +209,8 @@ export const channels = sqliteTable(
     notifyStar: integer("notify_star", { mode: "boolean" }).notNull().default(true),
     notifyUnstar: integer("notify_unstar", { mode: "boolean" }).notNull().default(true),
     milestoneEvery: integer("milestone_every"),
+    /** Dynamic frequency tiers, null when off. */
+    frequencyTiers: text("frequency_tiers", { mode: "json" }).$type<FrequencyTier[] | null>(),
     templates: text("templates", { mode: "json" }).$type<Record<string, string> | null>(),
     ...timestamps,
   },
