@@ -14,6 +14,7 @@ StarWatch/
 ├── docs/
 │   ├── STRUCTURE.md            This file
 │   └── DATABASE.md             Database schema
+├── .env.example                Example environment for docker compose
 ├── src/
 │   ├── server/
 │   │   ├── index.ts            Entry point: config, migrations, HTTP server, jobs
@@ -31,11 +32,13 @@ StarWatch/
 │   └── shared/                 Types and constants shared by server and frontend
 ├── web/
 │   ├── index.html
+│   ├── public/                 Static assets (favicon)
 │   └── src/
 │       ├── main.tsx            React entry
 │       ├── App.tsx             Router and auth guards
 │       ├── index.css           Tailwind and theme tokens
-│       ├── lib/                API client, auth client, utilities
+│       ├── lib/                API client, auth client, response types, utilities
+│       ├── hooks/              Session and setup-status queries
 │       ├── components/ui/      shadcn/ui components
 │       ├── components/         Layout, sidebar, shared widgets
 │       └── pages/              Dashboard, Repositories, Events, Channels, Settings, auth pages
