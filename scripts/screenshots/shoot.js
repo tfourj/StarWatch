@@ -31,7 +31,16 @@ const SHOTS = [
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
   await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: THEME }]);
-  await page.evaluateOnNewDocument((t) => localStorage.setItem("starwatch-theme", t), THEME);
+  // Mark the current version's release notes as seen so the "new" dot does not show.
+  const { version } = await (await fetch(`${BASE}/api/setup/status`)).json();
+  await page.evaluateOnNewDocument(
+    (theme, seen) => {
+      localStorage.setItem("starwatch-theme", theme);
+      localStorage.setItem("starwatch-seen-version", seen);
+    },
+    THEME,
+    version,
+  );
   await page.setCookie(...cookies);
 
   for (const s of SHOTS) {
