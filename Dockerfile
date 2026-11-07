@@ -16,13 +16,11 @@ FROM oven/bun:1-alpine AS runtime
 RUN apk add --no-cache tzdata su-exec
 WORKDIR /app
 
-ARG APP_VERSION=0.1.0
 ENV NODE_ENV=production \
     PORT=4321 \
     DATA_DIR=/data \
     WEB_DIR=/app/web \
-    MIGRATIONS_DIR=/app/drizzle \
-    APP_VERSION=${APP_VERSION}
+    MIGRATIONS_DIR=/app/drizzle
 
 COPY --from=build /app/dist/server/index.js ./server.js
 COPY --from=build /app/dist/web ./web
