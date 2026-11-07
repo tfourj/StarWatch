@@ -15,6 +15,13 @@
       "when": 1794078930683,
       "tag": "0001_repos_off_by_default",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794080449244,
+      "tag": "0002_repo_last_delivery",
+      "breakpoints": true
     }
   ]
 }

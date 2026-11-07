@@ -48,7 +48,7 @@ export function handleStarWebhook(payload: StarWebhookPayload, deliveryId: strin
   for (const repo of repos) {
     getDb()
       .update(repositories)
-      .set({ hookStatus: "active", hookError: null, hookCheckedAt: new Date() })
+      .set({ hookStatus: "active", hookError: null, hookCheckedAt: new Date(), lastDeliveryAt: new Date() })
       .where(eq(repositories.id, repo.id))
       .run();
     const event = recordStarEvent(repo, {
@@ -73,7 +73,13 @@ export function handlePing(payload: PingPayload): number {
   if (!payload.repository?.id) return 0;
   const result = getDb()
     .update(repositories)
-    .set({ hookStatus: "active", hookError: null, hookCheckedAt: new Date(), hookId: payload.hook_id ?? undefined })
+    .set({
+      hookStatus: "active",
+      hookError: null,
+      hookCheckedAt: new Date(),
+      lastDeliveryAt: new Date(),
+      hookId: payload.hook_id ?? undefined,
+    })
     .where(and(eq(repositories.githubId, payload.repository.id), eq(repositories.monitored, true)))
     .run();
   return affected(result);

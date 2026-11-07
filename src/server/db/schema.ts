@@ -122,6 +122,7 @@ export const repositories = sqliteTable(
     hookStatus: text("hook_status", { enum: HOOK_STATUSES }).notNull().default("none"),
     hookError: text("hook_error"),
     hookCheckedAt: integer("hook_checked_at", { mode: "timestamp_ms" }),
+    lastDeliveryAt: integer("last_delivery_at", { mode: "timestamp_ms" }),
     backfilledAt: integer("backfilled_at", { mode: "timestamp_ms" }),
     backfillError: text("backfill_error"),
     lastPolledAt: integer("last_polled_at", { mode: "timestamp_ms" }),

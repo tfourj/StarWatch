@@ -58,6 +58,7 @@ Values marked *encrypted* are AES-256-GCM ciphertext (key derived from `ENCRYPTI
 | `hook_status`       | `none`, `active`, `missing`, `error`                       |
 | `hook_error`        | Last webhook error                                         |
 | `hook_checked_at`   |                                                            |
+| `last_delivery_at`  | Last ping or star delivery received from GitHub            |
 | `backfilled_at`     | Set after the silent initial stargazer import              |
 | `last_polled_at`    |                                                            |
 | `removed_at`        | Set when the repo no longer shows up on GitHub             |

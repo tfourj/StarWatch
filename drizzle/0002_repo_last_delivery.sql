@@ -1,0 +1,1 @@
+ALTER TABLE `repositories` ADD `last_delivery_at` integer;
