@@ -12,12 +12,18 @@ import { syncRepositories } from "../services/repos";
 import {
   getAppSetting,
   getGithubToken,
+  getTunnelBaseUrl,
+  getTunnelSettings,
   getUserSettings,
   getWebhookUrl,
   listUsersWithTokens,
+  normalizeTunnelHostname,
   setAppSetting,
+  updateTunnelSettings,
   updateUserSettings,
+  type TunnelSettings,
 } from "../services/settings";
+import { applyTunnelSettings, getTunnelStatus, updateCloudflared } from "../services/tunnel";
 
 const log = logger.child("settings");
 
@@ -48,6 +54,7 @@ function settingsView(userId: string, isAdmin: boolean) {
       url: getWebhookUrl(),
       baseUrlOverride: getAppSetting("webhook_base_url"),
       defaultBaseUrl: config.baseUrl,
+      tunnel: getTunnelBaseUrl() !== null,
       canEdit: isAdmin,
     },
     server: { timezone: config.timezone, allowRegistration: config.allowRegistration },
@@ -62,6 +69,31 @@ function storeToken(userId: string, token: string, info: Awaited<ReturnType<type
     githubScopes: info.scopes,
     githubTokenCheckedAt: new Date(),
   });
+}
+
+function tunnelView() {
+  const tunnel = getTunnelSettings();
+  return {
+    enabled: tunnel.enabled,
+    mode: tunnel.mode,
+    tokenHint: tunnel.tokenHint,
+    hostname: tunnel.hostname,
+    webhookUrl: getTunnelBaseUrl() ? getWebhookUrl() : null,
+    localService: `http://localhost:${getConfig().tunnelPort}`,
+    status: getTunnelStatus(),
+  };
+}
+
+/** Pull the token out of a pasted value, which may be the whole "cloudflared service install <token>" command. */
+function extractTunnelToken(value: string): string {
+  const token = value.trim().split(/\s+/).pop() ?? "";
+  try {
+    const decoded = JSON.parse(Buffer.from(token, "base64").toString("utf8")) as { t?: unknown };
+    if (typeof decoded.t === "string") return token;
+  } catch {
+    // fall through
+  }
+  throw new HttpError(400, "That does not look like a Cloudflare tunnel token");
 }
 
 async function validateOrThrow(token: string) {
@@ -137,6 +169,43 @@ export const settingsRoutes = new Hono<AuthedEnv>()
     });
     log.info("github token removed", { userId: user.id });
     return c.json(settingsView(user.id, user.role === "admin"));
+  })
+  .get("/cloudflared", requireAdmin, (c) => c.json(tunnelView()))
+  .put("/cloudflared", requireAdmin, async (c) => {
+    const body = await readJson<{ enabled?: unknown; mode?: unknown; token?: unknown; hostname?: unknown }>(c);
+    const patch: Partial<TunnelSettings> = {};
+    if (body.mode !== undefined) {
+      if (body.mode !== "token" && body.mode !== "quick") throw new HttpError(400, "Mode must be token or quick");
+      patch.mode = body.mode;
+    }
+    if (typeof body.token === "string" && body.token.trim()) patch.token = extractTunnelToken(body.token);
+    if (body.hostname !== undefined) {
+      const raw = typeof body.hostname === "string" ? body.hostname : "";
+      const hostname = normalizeTunnelHostname(raw);
+      if (raw.trim() && !hostname) throw new HttpError(400, "Public hostname must look like stars.example.com");
+      patch.hostname = hostname;
+    }
+    if (body.enabled !== undefined) patch.enabled = Boolean(body.enabled);
+
+    const next = { ...getTunnelSettings(), ...patch };
+    if (next.enabled && next.mode === "token" && (!next.token || !next.hostname)) {
+      throw new HttpError(400, "Save a tunnel token and public hostname first");
+    }
+
+    const previous = getWebhookUrl();
+    updateTunnelSettings(patch);
+    log.info("cloudflared settings saved", { enabled: next.enabled, mode: next.mode, hostname: next.hostname });
+    applyTunnelSettings(previous);
+    return c.json(tunnelView());
+  })
+  .post("/cloudflared/update", requireAdmin, async (c) => {
+    if (process.env.CLOUDFLARED_PATH?.trim()) throw new HttpError(400, "cloudflared is managed through CLOUDFLARED_PATH");
+    try {
+      const result = await updateCloudflared();
+      return c.json({ ...tunnelView(), update: result });
+    } catch (err) {
+      throw new HttpError(502, err instanceof Error ? err.message : String(err));
+    }
   })
   .patch("/app", requireAdmin, async (c) => {
     const user = c.get("user");

@@ -4,7 +4,7 @@ import { getConfig } from "../config";
 import { getDb } from "../db/client";
 import { appSettings, userSettings, type UserSettings } from "../db/schema";
 import { GitHubClient } from "../github/client";
-import { cipher, randomToken } from "../lib/crypto";
+import { cipher, hint, randomToken } from "../lib/crypto";
 
 export const WEBHOOK_PATH = "/api/webhooks/github";
 
@@ -70,8 +70,65 @@ export function getWebhookSecret(): string {
   return cipher().decrypt(getAppSetting("webhook_secret")!);
 }
 
+export type TunnelMode = "token" | "quick";
+
+export interface TunnelSettings {
+  enabled: boolean;
+  mode: TunnelMode;
+  token: string | null;
+  tokenHint: string | null;
+  hostname: string | null;
+  /** Last URL a quick tunnel reported. It changes on every cloudflared start. */
+  quickUrl: string | null;
+}
+
+export function getTunnelSettings(): TunnelSettings {
+  const stored = getAppSetting("cloudflared_token");
+  const token = stored ? cipher().decrypt(stored) : null;
+  return {
+    enabled: getAppSetting("cloudflared_enabled") === "true",
+    mode: getAppSetting("cloudflared_mode") === "quick" ? "quick" : "token",
+    token,
+    tokenHint: token ? hint(token) : null,
+    hostname: getAppSetting("cloudflared_hostname"),
+    quickUrl: getAppSetting("cloudflared_quick_url"),
+  };
+}
+
+export function updateTunnelSettings(
+  patch: Partial<Pick<TunnelSettings, "enabled" | "mode" | "token" | "hostname" | "quickUrl">>,
+) {
+  if (patch.enabled !== undefined) setAppSetting("cloudflared_enabled", patch.enabled ? "true" : null);
+  if (patch.mode !== undefined) setAppSetting("cloudflared_mode", patch.mode);
+  if (patch.token !== undefined) setAppSetting("cloudflared_token", patch.token ? cipher().encrypt(patch.token) : null);
+  if (patch.hostname !== undefined) setAppSetting("cloudflared_hostname", patch.hostname);
+  if (patch.quickUrl !== undefined) setAppSetting("cloudflared_quick_url", patch.quickUrl);
+}
+
+/** Accept "stars.example.com" or a full URL and return the bare lowercase hostname, or null when invalid. */
+export function normalizeTunnelHostname(value: string): string | null {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return null;
+  let host: string;
+  try {
+    host = new URL(/^[a-z]+:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`).hostname;
+  } catch {
+    return null;
+  }
+  const label = "[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?";
+  return new RegExp(`^(?:${label}\\.)+[a-z]{2,63}$`).test(host) && host.length <= 253 ? host : null;
+}
+
+/** Public base URL served by the Cloudflare tunnel, or null when the tunnel is off or its URL is not known yet. */
+export function getTunnelBaseUrl(): string | null {
+  const tunnel = getTunnelSettings();
+  if (!tunnel.enabled) return null;
+  if (tunnel.mode === "token") return tunnel.hostname ? `https://${tunnel.hostname}` : null;
+  return tunnel.quickUrl;
+}
+
 export function getWebhookBaseUrl(): string {
-  return getAppSetting("webhook_base_url") || getConfig().baseUrl;
+  return getTunnelBaseUrl() || getAppSetting("webhook_base_url") || getConfig().baseUrl;
 }
 
 export function getWebhookUrl(): string {

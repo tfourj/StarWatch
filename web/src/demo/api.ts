@@ -619,6 +619,7 @@ function settingsView() {
     webhook: {
       url: `${DEMO_WEBHOOK_BASE_URL}/api/webhooks/github`,
       baseUrlOverride: DEMO_WEBHOOK_BASE_URL,
+      tunnel: false,
       defaultBaseUrl: "https://starwatch.example.com",
       canEdit: true,
     },
@@ -770,6 +771,34 @@ const ROUTES: [string, RegExp, Handler][] = [
   ["POST", /^\/settings\/github-token\/check$/, () => unavailable("Checking the GitHub token")],
   ["DELETE", /^\/settings\/github-token$/, () => unavailable("Removing the GitHub token")],
   ["PATCH", /^\/settings\/app$/, () => unavailable("Changing the webhook URL")],
+  [
+    "GET",
+    /^\/settings\/cloudflared$/,
+    () => ({
+      enabled: false,
+      mode: "token",
+      tokenHint: null,
+      hostname: null,
+      webhookUrl: null,
+      localService: "http://localhost:4322",
+      status: {
+        state: "stopped",
+        connections: 0,
+        error: null,
+        since: null,
+        binary: {
+          supported: true,
+          installed: true,
+          managed: true,
+          version: "2026.10.7",
+          lastCheckAt: null,
+          updateError: null,
+        },
+      },
+    }),
+  ],
+  ["PUT", /^\/settings\/cloudflared$/, () => unavailable("Changing the Cloudflare tunnel")],
+  ["POST", /^\/settings\/cloudflared\/update$/, () => unavailable("Updating cloudflared")],
   ["GET", /^\/users$/, () => ({ users: getState().users.map(userView), allowRegistration: false })],
   ["POST", /^\/users$/, (_, __, body) => createUser(body)],
   ["POST", /^\/users\/([^/]+)\/password$/, ([id], _, body) => {

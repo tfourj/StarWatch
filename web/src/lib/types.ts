@@ -222,9 +222,37 @@ export interface Settings {
   autoMonitorNew: boolean;
   templates: MessageTemplates;
   defaultTemplates: MessageTemplates;
-  webhook: { url: string; baseUrlOverride: string | null; defaultBaseUrl: string; canEdit: boolean };
+  webhook: { url: string; baseUrlOverride: string | null; defaultBaseUrl: string; tunnel: boolean; canEdit: boolean };
   server: { timezone: string; allowRegistration: boolean };
 }
+
+export type TunnelMode = "token" | "quick";
+export type TunnelState = "stopped" | "starting" | "connected" | "error";
+
+export interface TunnelSettings {
+  enabled: boolean;
+  mode: TunnelMode;
+  tokenHint: string | null;
+  hostname: string | null;
+  webhookUrl: string | null;
+  localService: string;
+  status: {
+    state: TunnelState;
+    connections: number;
+    error: string | null;
+    since: string | null;
+    binary: {
+      supported: boolean;
+      installed: boolean;
+      managed: boolean;
+      version: string | null;
+      lastCheckAt: string | null;
+      updateError: string | null;
+    };
+  };
+}
+
+export type TunnelUpdateResponse = TunnelSettings & { update: { version: string; updated: boolean } | null };
 
 export interface ManagedUser {
   id: string;

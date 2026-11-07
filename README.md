@@ -19,6 +19,7 @@
 
 - Instant alerts through GitHub webhooks, with polling as a fallback
 - Webhooks are created and repaired automatically
+- Optional built-in Cloudflare Tunnel, so webhooks work without a reverse proxy
 - Notifications for stars, unstars or only milestones (every 10, 100 ... stars)
 - Custom message templates
 - Dashboard with stats, chart and event log
