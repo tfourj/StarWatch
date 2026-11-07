@@ -62,11 +62,13 @@ export const repos = new Hono<AuthedEnv>()
     }
   })
   .post("/bulk", async (c) => {
-    const body = await readJson<{ monitored?: unknown; repoIds?: unknown }>(c);
+    const body = await readJson<{ monitored?: unknown; repoIds?: unknown; mode?: unknown }>(c);
     if (typeof body.monitored !== "boolean") throw new HttpError(400, "monitored must be true or false");
     if (body.repoIds !== undefined && !Array.isArray(body.repoIds)) throw new HttpError(400, "repoIds must be an array");
+    if (body.mode !== undefined && !REPO_MODES.includes(body.mode as never)) throw new HttpError(400, "Invalid mode");
     const repoIds = Array.isArray(body.repoIds) ? body.repoIds.map(Number).filter(Number.isInteger) : undefined;
-    return c.json(setMonitoringForRepos(c.get("user").id, body.monitored, repoIds));
+    const mode = body.mode as (typeof REPO_MODES)[number] | undefined;
+    return c.json(setMonitoringForRepos(c.get("user").id, body.monitored, repoIds, mode));
   })
   .get("/:id/stargazers", (c) => {
     const result = listStargazers(c.get("user").id, parseId(c.req.param("id")), {

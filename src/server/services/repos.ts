@@ -187,13 +187,14 @@ export interface BulkMonitoringResult {
 }
 
 /**
- * Turn monitoring on or off for all of a user's repos, or only `repoIds`.
+ * Turn monitoring on or off for all of a user's repos, or only `repoIds`, optionally setting the mode too.
  * Rows change immediately; webhooks are created or removed in the background.
  */
 export function setMonitoringForRepos(
   userId: string,
   monitored: boolean,
   repoIds?: number[],
+  mode?: Repository["mode"],
 ): BulkMonitoringResult {
   const db = getDb();
   const scope = and(
@@ -203,22 +204,22 @@ export function setMonitoringForRepos(
   );
   const rows = db.select().from(repositories).where(scope).all();
 
-  const changed = rows.filter((r) => r.monitored !== monitored);
+  const changed = rows.filter((r) => r.monitored !== monitored || (mode !== undefined && r.mode !== mode));
   // Turning off also cleans up hooks left on repos that were already off.
   const needsHookWork = rows.filter(
-    (r) => r.monitored !== monitored || (!monitored && (r.hookId !== null || r.hookStatus !== "none")),
+    (r) => changed.includes(r) || (!monitored && (r.hookId !== null || r.hookStatus !== "none")),
   );
 
   if (changed.length) {
     db.update(repositories)
-      .set({ monitored })
+      .set(mode === undefined ? { monitored } : { monitored, mode })
       .where(inArray(repositories.id, changed.map((r) => r.id)))
       .run();
   }
 
   const ids = needsHookWork.map((r) => r.id);
   if (ids.length) void syncHooksFor(userId, ids);
-  log.info("bulk monitoring change", { userId, monitored, updated: changed.length, hooksPending: ids.length });
+  log.info("bulk monitoring change", { userId, monitored, mode, updated: changed.length, hooksPending: ids.length });
   return { updated: changed.length, hooksPending: ids.length };
 }
 
