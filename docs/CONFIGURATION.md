@@ -8,7 +8,9 @@
    - `admin:repo_hook` to manage webhooks
 3. In **Settings → GitHub**, paste the token. StarWatch validates it, shows its scopes and starts a sync.
 4. In **Channels**, add at least one channel and press **Test**.
-5. In **Repositories**, choose which repos to monitor and how (webhook, polling or both).
+5. In **Repositories**, choose which repos to monitor and how (webhook, polling or both). Repos start unmonitored.
+   **Turn all on** and **Turn all off** change every listed repo at once. To monitor new repos automatically,
+   enable **Settings → Monitoring → Monitor new repositories**.
 
 Since July 2026 GitHub only returns stargazer lists to repo admins and collaborators, and tokens without scopes no
 longer work, so a scoped token is required.
