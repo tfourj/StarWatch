@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookMarked, Bell, ChevronDown, Copy, Lock, RefreshCw, Search, Star, Zap } from "lucide-react";
+import { BookMarked, Bell, ChevronDown, Copy, Eye, EyeOff, Lock, RefreshCw, Search, Star, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { EmptyState, ErrorNote, HookBadge, PageHeader, Spinner } from "@/components/shared";
+import { ConfirmDialog, EmptyState, ErrorNote, HookBadge, PageHeader, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,7 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api, errorMessage } from "@/lib/api";
-import type { ChannelSummary, Repo, RepoMode, ReposResponse, SyncSummary } from "@/lib/types";
+import type { BulkMonitoringResult, ChannelSummary, Repo, RepoMode, ReposResponse, SyncSummary } from "@/lib/types";
 import { formatNumber, timeAgo } from "@/lib/utils";
 
 const MODES: { value: RepoMode; label: string }[] = [
@@ -79,7 +79,23 @@ function useRepoMutations() {
     onError: (err) => toast.error(errorMessage(err)),
   });
 
-  return { update, setChannels, ping, sync };
+  const bulk = useMutation({
+    mutationFn: (body: { monitored: boolean; repoIds?: number[] }) =>
+      api.post<BulkMonitoringResult>("/repos/bulk", body),
+    onSuccess: (result, { monitored }) => {
+      const verb = monitored ? "Turned on" : "Turned off";
+      const hooks = result.hooksPending
+        ? ` ${monitored ? "Creating" : "Removing"} ${result.hooksPending} webhooks in the background.`
+        : "";
+      toast.success(`${verb} monitoring for ${result.updated} repositories.${hooks}`);
+      invalidate();
+      // Webhook statuses change in the background, refresh again shortly.
+      setTimeout(invalidate, 5_000);
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+
+  return { update, setChannels, ping, sync, bulk };
 }
 
 function ChannelPicker({
@@ -303,11 +319,35 @@ export function RepositoriesPage() {
     });
   }, [data, query, filter]);
 
+  const [bulkTarget, setBulkTarget] = useState<boolean | null>(null);
+  const filtered = query.trim() !== "" || filter !== "all";
+
+  function runBulk(monitored: boolean) {
+    mutations.bulk.mutate(
+      { monitored, repoIds: filtered ? repos.map((r) => r.id) : undefined },
+      { onSettled: () => setBulkTarget(null) },
+    );
+  }
+
   const syncButton = (
     <Button onClick={() => mutations.sync.mutate()} disabled={mutations.sync.isPending || !data?.hasToken}>
       {mutations.sync.isPending ? <Spinner /> : <RefreshCw />}
       Sync webhooks
     </Button>
+  );
+
+  const headerActions = (
+    <>
+      <Button variant="outline" onClick={() => setBulkTarget(false)} disabled={repos.length === 0}>
+        <EyeOff />
+        {filtered ? "Turn listed off" : "Turn all off"}
+      </Button>
+      <Button variant="outline" onClick={() => setBulkTarget(true)} disabled={repos.length === 0}>
+        <Eye />
+        {filtered ? "Turn listed on" : "Turn all on"}
+      </Button>
+      {syncButton}
+    </>
   );
 
   return (
@@ -317,7 +357,7 @@ export function RepositoriesPage() {
         description={
           data?.lastSyncAt ? `Last synced ${timeAgo(data.lastSyncAt)}` : "Repositories you own on GitHub."
         }
-        actions={syncButton}
+        actions={headerActions}
       />
 
       {error && <ErrorNote>{error.message}</ErrorNote>}
@@ -414,6 +454,23 @@ export function RepositoriesPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={bulkTarget !== null}
+        onOpenChange={(open) => !open && setBulkTarget(null)}
+        title={bulkTarget ? "Turn on monitoring?" : "Turn off monitoring?"}
+        description={
+          bulkTarget
+            ? `Monitor ${repos.length} ${filtered ? "listed " : ""}repositories. Webhooks are created on GitHub ` +
+              "for repos in webhook or both mode, so check the webhook URL first."
+            : `Stop monitoring ${repos.length} ${filtered ? "listed " : ""}repositories and remove their webhooks ` +
+              "from GitHub."
+        }
+        confirmLabel={bulkTarget ? "Turn on" : "Turn off"}
+        destructive={bulkTarget === false}
+        pending={mutations.bulk.isPending}
+        onConfirm={() => bulkTarget !== null && runBulk(bulkTarget)}
+      />
     </>
   );
 }

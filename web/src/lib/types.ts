@@ -115,6 +115,11 @@ export interface SyncSummary {
   hookErrors: number;
 }
 
+export interface BulkMonitoringResult {
+  updated: number;
+  hooksPending: number;
+}
+
 export interface Delivery {
   id: number;
   channelId: number;
