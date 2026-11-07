@@ -22,6 +22,7 @@ StarWatch/
 │   ├── BUILD.md                Building from source, CI images, development
 │   ├── assets/                 README logo (light and dark)
 │   └── screenshots/            README screenshots
+├── CHANGELOG.md                Release notes, also shown in the app
 ├── .env.example                Example environment for docker compose
 ├── src/
 │   ├── server/

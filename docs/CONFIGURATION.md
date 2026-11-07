@@ -66,7 +66,17 @@ toggle, a **Test** button and filters:
 
 - all repositories or a selected list
 - stars, unstars or both
-- milestone mode: only notify when the star count is a multiple of N
+- frequency: every star (default), milestones (only when the star count is a multiple of N), or dynamic:
+
+  | Stars        | Notify on            |
+  | ------------ | -------------------- |
+  | 0 to 99      | Every new star       |
+  | 100 to 199   | Every 5 new stars    |
+  | 200 to 499   | Every 10 new stars   |
+  | 500 and more | Every 20 new stars   |
+
+  The dynamic tiers can be edited per channel. "Every 5" means the star count is a multiple of 5. Unstars are not
+  thinned out; they follow the unstar setting.
 
 Templates are set in **Settings → Templates** and can be overridden per channel. Variables:
 
