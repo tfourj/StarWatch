@@ -13,17 +13,32 @@ import { formatDateTime, formatNumber, timeAgo } from "@/lib/utils";
 const PAGE_SIZE = 50;
 
 function ImportStatus({ data }: { data: StargazersResponse }) {
-  if (data.repo.backfillError) {
-    return <ErrorNote>Import of existing stargazers failed: {data.repo.backfillError}</ErrorNote>;
-  }
-  if (!data.repo.backfilledAt) {
+  const { repo } = data;
+  if (repo.backfilledAt) return null;
+  if (repo.importing) {
     return (
-      <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-        Existing stargazers are still being imported. Only stars seen since monitoring started are listed.
+      <p className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+        <Spinner />
+        Importing existing stargazers from GitHub. The list fills in when it finishes.
       </p>
     );
   }
-  return null;
+  if (repo.backfillError) {
+    return (
+      <ErrorNote>
+        <p>
+          Import of existing stargazers failed and retries on the next sync. Only stars seen since monitoring
+          started are listed.
+        </p>
+        <p className="mt-1 text-xs opacity-80">{repo.backfillError}</p>
+      </ErrorNote>
+    );
+  }
+  return (
+    <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+      The import of existing stargazers has not started yet. Only stars seen since monitoring started are listed.
+    </p>
+  );
 }
 
 export function StargazersDialog({ repo, onClose }: { repo: Repo | null; onClose: () => void }) {
@@ -53,6 +68,10 @@ export function StargazersDialog({ repo, onClose }: { repo: Repo | null; onClose
     queryFn: () => api.get<StargazersResponse>(`/repos/${repo!.id}/stargazers?${params}`),
     enabled: Boolean(repo),
     placeholderData: keepPreviousData,
+    refetchInterval: (q) => {
+      const r = q.state.data?.repo;
+      return r && !r.backfilledAt && !r.backfillError ? 3_000 : false;
+    },
   });
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;

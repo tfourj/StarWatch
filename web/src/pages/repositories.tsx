@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookMarked, ChevronDown, Copy, EyeOff, Lock, Plus, RefreshCw, Search, Star, Zap } from "lucide-react";
+import { BookMarked, ChevronDown, Copy, EyeOff, Loader2, Lock, Plus, RefreshCw, Search, Star, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -221,6 +221,14 @@ function WebhookCell({ repo, onPing }: { repo: Repo; onPing: () => void }) {
 
 function ImportNote({ repo }: { repo: Repo }) {
   if (!repo.monitored || repo.backfilledAt) return null;
+  if (repo.importing) {
+    return (
+      <Badge variant="secondary">
+        <Loader2 className="animate-spin" />
+        Importing stargazers
+      </Badge>
+    );
+  }
   if (repo.backfillError) {
     return (
       <Tooltip>
@@ -229,11 +237,23 @@ function ImportNote({ repo }: { repo: Repo }) {
             Import failed
           </Badge>
         </TooltipTrigger>
-        <TooltipContent>{repo.backfillError}</TooltipContent>
+        <TooltipContent>
+          <p>Stargazer import failed and retries on the next sync.</p>
+          <p className="mt-1 opacity-80">{repo.backfillError}</p>
+        </TooltipContent>
       </Tooltip>
     );
   }
-  return <Badge variant="secondary">Importing stargazers</Badge>;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant="outline" className="cursor-help">
+          Import queued
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>The stargazer import starts shortly, or on the next sync.</TooltipContent>
+    </Tooltip>
+  );
 }
 
 function RepoRow({
@@ -332,7 +352,9 @@ export function RepositoriesPage() {
   const { data, isPending, error } = useQuery({
     queryKey: ["repos"],
     queryFn: () => api.get<ReposResponse>("/repos"),
-    refetchInterval: 20_000,
+    // Poll faster while stargazer imports are queued or running.
+    refetchInterval: (q) =>
+      q.state.data?.repos.some((r) => r.monitored && !r.backfilledAt && !r.backfillError) ? 3_000 : 20_000,
   });
   const mutations = useRepoMutations();
   const [query, setQuery] = useState("");

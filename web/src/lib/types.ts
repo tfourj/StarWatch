@@ -84,6 +84,8 @@ export interface Repo {
   hookCheckedAt: string | null;
   backfilledAt: string | null;
   backfillError: string | null;
+  /** True while the stargazer import is running. */
+  importing: boolean;
   lastPolledAt: string | null;
   channelIds: number[];
 }
@@ -134,6 +136,7 @@ export interface StargazersResponse {
     starCount: number;
     backfilledAt: string | null;
     backfillError: string | null;
+    importing: boolean;
   };
 }
 
