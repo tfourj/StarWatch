@@ -18,6 +18,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { GitHubIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
 import { useTheme } from "@/components/theme-provider";
+import { useSetupStatus } from "@/hooks/use-session";
 import { UserAvatar } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -151,19 +152,28 @@ function UserMenu({ user }: { user: CurrentUser }) {
 const REPO_URL = "https://github.com/tfourj/StarWatch";
 
 function RepoLink() {
+  const { data: setup } = useSetupStatus();
+  const linkClass =
+    "rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors " +
+    "hover:bg-sidebar-accent/60 hover:text-sidebar-foreground";
   return (
-    <a
-      href={REPO_URL}
-      target="_blank"
-      rel="noreferrer"
-      className={
-        "flex items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground transition-colors " +
-        "hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-      }
-    >
-      <GitHubIcon className="size-4" />
-      tfourj/StarWatch
-    </a>
+    <div className="flex items-center justify-between gap-2">
+      <a href={REPO_URL} target="_blank" rel="noreferrer" className={cn("flex items-center gap-2 px-3", linkClass)}>
+        <GitHubIcon className="size-4" />
+        tfourj/StarWatch
+      </a>
+      {setup?.version && (
+        <a
+          href={`${REPO_URL}/releases/tag/v${setup.version}`}
+          target="_blank"
+          rel="noreferrer"
+          title="Release notes"
+          className={cn("font-mono tabular-nums", linkClass)}
+        >
+          v{setup.version}
+        </a>
+      )}
+    </div>
   );
 }
 
