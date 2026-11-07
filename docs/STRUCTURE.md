@@ -5,8 +5,10 @@ and the built React frontend on one port.
 
 ```text
 StarWatch/
+├── .github/workflows/ci.yml    Typecheck, tests, build, multi-arch image to GHCR
 ├── Dockerfile                  Multi-stage build (deps, build, slim runtime)
-├── docker-compose-local.yml    Builds the image from source, /data volume
+├── docker-compose.yml          Runs the published GHCR image with a /data volume
+├── docker-compose-local.yml    Builds the image from source instead
 ├── docker/entrypoint.sh        Fixes /data ownership, drops to the bun user
 ├── drizzle/                    Generated SQL migrations (applied on startup)
 ├── drizzle.config.ts           drizzle-kit config
