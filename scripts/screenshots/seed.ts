@@ -3,6 +3,7 @@
 // All names are fictional; dates are relative to now so the dashboard always looks current.
 import { Database } from "bun:sqlite";
 import { createCipher } from "../../src/server/lib/crypto";
+import { DEFAULT_FREQUENCY_TIERS } from "../../src/shared/frequency";
 
 const BASE = "http://localhost:4321";
 const DATA_DIR = process.env.DATA_DIR ?? "/tmp/data";
@@ -218,7 +219,12 @@ for (let daysAgo = 29; daysAgo >= 0; daysAgo--) {
 
 const CHANNELS = [
   { name: "Discord #stars", type: "discord", config: { webhookUrl: "https://discord.com/api/webhooks/1/x" } },
-  { name: "Phone (ntfy)", type: "ntfy", config: { serverUrl: "https://ntfy.sh", topic: "stars", priority: "3" } },
+  {
+    name: "Phone (ntfy)",
+    type: "ntfy",
+    config: { serverUrl: "https://ntfy.sh", topic: "stars", priority: "3" },
+    frequencyTiers: DEFAULT_FREQUENCY_TIERS,
+  },
   { name: "Team Slack", type: "slack", config: { webhookUrl: "https://hooks.slack.com/services/x" }, allRepos: false },
   {
     name: "Milestones",
@@ -233,8 +239,9 @@ const channelIds: Record<string, number> = {};
 for (const ch of CHANNELS) {
   const row = db
     .query(
-      `insert into channels (user_id, name, type, config, enabled, all_repos, notify_unstar, milestone_every)
-       values (?, ?, ?, ?, 1, ?, ?, ?) returning id`,
+      `insert into channels
+         (user_id, name, type, config, enabled, all_repos, notify_unstar, milestone_every, frequency_tiers)
+       values (?, ?, ?, ?, 1, ?, ?, ?, ?) returning id`,
     )
     .get(
       userId,
@@ -244,6 +251,7 @@ for (const ch of CHANNELS) {
       ch.allRepos === false ? 0 : 1,
       ch.notifyUnstar === false ? 0 : 1,
       ch.milestoneEvery ?? null,
+      ch.frequencyTiers ? JSON.stringify(ch.frequencyTiers) : null,
     ) as { id: number };
   channelIds[ch.name] = row.id;
 }
