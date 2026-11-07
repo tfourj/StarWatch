@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookMarked, Bell, ChevronDown, Copy, Eye, EyeOff, Lock, RefreshCw, Search, Star, Zap } from "lucide-react";
+import { BookMarked, ChevronDown, Copy, EyeOff, Lock, Plus, RefreshCw, Search, Star, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
+import { AddRepositoriesDialog } from "@/components/repos/add-repositories-dialog";
 import { StargazersDialog } from "@/components/repos/stargazers-dialog";
 import { ConfirmDialog, EmptyState, ErrorNote, HookBadge, PageHeader, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api, errorMessage } from "@/lib/api";
@@ -32,7 +32,7 @@ const MODES: { value: RepoMode; label: string }[] = [
   { value: "both", label: "Both" },
 ];
 
-type Filter = "all" | "monitored" | "unmonitored" | "problems";
+type Filter = "all" | "problems";
 
 function useRepoMutations() {
   const queryClient = useQueryClient();
@@ -44,8 +44,9 @@ function useRepoMutations() {
   const update = useMutation({
     mutationFn: ({ id, ...patch }: { id: number; monitored?: boolean; mode?: RepoMode }) =>
       api.patch<Repo>(`/repos/${id}`, patch),
-    onSuccess: (repo) => {
+    onSuccess: (repo, { monitored }) => {
       if (repo?.hookStatus === "error" && repo.hookError) toast.warning(`${repo.fullName}: ${repo.hookError}`);
+      else if (monitored === false) toast.success(`Stopped monitoring ${repo?.fullName ?? "repository"}`);
       else toast.success(`${repo?.fullName ?? "Repository"} updated`);
       invalidate();
     },
@@ -81,14 +82,14 @@ function useRepoMutations() {
   });
 
   const bulk = useMutation({
-    mutationFn: (body: { monitored: boolean; repoIds?: number[] }) =>
+    mutationFn: (body: { monitored: boolean; repoIds?: number[]; mode?: RepoMode }) =>
       api.post<BulkMonitoringResult>("/repos/bulk", body),
     onSuccess: (result, { monitored }) => {
-      const verb = monitored ? "Turned on" : "Turned off";
+      const verb = monitored ? "Now monitoring" : "Stopped monitoring";
       const hooks = result.hooksPending
-        ? ` ${monitored ? "Creating" : "Removing"} ${result.hooksPending} webhooks in the background.`
+        ? ` ${monitored ? "Creating" : "Removing"} webhooks in the background.`
         : "";
-      toast.success(`${verb} monitoring for ${result.updated} repositories.${hooks}`);
+      toast.success(`${verb} ${result.updated} ${result.updated === 1 ? "repository" : "repositories"}.${hooks}`);
       invalidate();
       // Webhook statuses change in the background, refresh again shortly.
       setTimeout(invalidate, 5_000);
@@ -278,20 +279,9 @@ function RepoRow({
         </button>
       </TableCell>
       <TableCell>
-        <div className="flex items-center gap-2">
-          <Switch
-            checked={repo.monitored}
-            disabled={busy}
-            onCheckedChange={(monitored) => mutations.update.mutate({ id: repo.id, monitored })}
-            aria-label={`Monitor ${repo.fullName}`}
-          />
-          {busy && <Spinner className="text-muted-foreground" />}
-        </div>
-      </TableCell>
-      <TableCell>
         <Select
           value={repo.mode}
-          disabled={busy}
+          disabled={busy || !repo.monitored}
           onValueChange={(mode) => mutations.update.mutate({ id: repo.id, mode: mode as RepoMode })}
         >
           <SelectTrigger className="h-8 w-28">
@@ -316,6 +306,24 @@ function RepoRow({
           onChange={(channelIds) => mutations.setChannels.mutate({ id: repo.id, channelIds })}
         />
       </TableCell>
+      <TableCell className="pr-4 text-right">
+        {repo.monitored && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                disabled={busy}
+                onClick={() => mutations.update.mutate({ id: repo.id, monitored: false })}
+                aria-label={`Stop monitoring ${repo.fullName}`}
+              >
+                {busy ? <Spinner /> : <EyeOff />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Stop monitoring and remove the webhook</TooltipContent>
+          </Tooltip>
+        )}
+      </TableCell>
     </TableRow>
   );
 }
@@ -329,47 +337,68 @@ export function RepositoriesPage() {
   const mutations = useRepoMutations();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [adding, setAdding] = useState(false);
+  const [confirmStopAll, setConfirmStopAll] = useState(false);
+  const [stargazersRepo, setStargazersRepo] = useState<Repo | null>(null);
+
+  // Repos with a webhook that failed to be removed stay listed until it is gone.
+  const tracked = useMemo(
+    () => (data?.repos ?? []).filter((r) => r.monitored || r.hookStatus === "error"),
+    [data],
+  );
+  const candidates = useMemo(() => (data?.repos ?? []).filter((r) => !r.monitored), [data]);
 
   const repos = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (data?.repos ?? []).filter((r) => {
+    return tracked.filter((r) => {
       if (q && !r.fullName.toLowerCase().includes(q)) return false;
-      if (filter === "monitored") return r.monitored;
-      if (filter === "unmonitored") return !r.monitored;
-      if (filter === "problems") return r.hookStatus === "error" || (r.monitored && Boolean(r.backfillError));
+      if (filter === "problems") return r.hookStatus === "error" || Boolean(r.backfillError);
       return true;
     });
-  }, [data, query, filter]);
+  }, [tracked, query, filter]);
 
-  const [bulkTarget, setBulkTarget] = useState<boolean | null>(null);
-  const [stargazersRepo, setStargazersRepo] = useState<Repo | null>(null);
   const filtered = query.trim() !== "" || filter !== "all";
+  const monitoredShown = repos.filter((r) => r.monitored);
 
-  function runBulk(monitored: boolean) {
+  function addRepos(repoIds: number[], mode: RepoMode) {
+    mutations.bulk.mutate({ monitored: true, repoIds, mode }, { onSuccess: () => setAdding(false) });
+  }
+
+  function stopAll() {
     mutations.bulk.mutate(
-      { monitored, repoIds: filtered ? repos.map((r) => r.id) : undefined },
-      { onSettled: () => setBulkTarget(null) },
+      { monitored: false, repoIds: filtered ? repos.map((r) => r.id) : undefined },
+      { onSettled: () => setConfirmStopAll(false) },
     );
   }
 
   const syncButton = (
-    <Button onClick={() => mutations.sync.mutate()} disabled={mutations.sync.isPending || !data?.hasToken}>
+    <Button
+      variant="outline"
+      onClick={() => mutations.sync.mutate()}
+      disabled={mutations.sync.isPending || !data?.hasToken}
+    >
       {mutations.sync.isPending ? <Spinner /> : <RefreshCw />}
       Sync webhooks
     </Button>
   );
 
+  const addButton = (
+    <Button onClick={() => setAdding(true)} disabled={!data?.hasToken}>
+      <Plus />
+      Add repositories
+    </Button>
+  );
+
   const headerActions = (
     <>
-      <Button variant="outline" onClick={() => setBulkTarget(false)} disabled={repos.length === 0}>
-        <EyeOff />
-        {filtered ? "Turn listed off" : "Turn all off"}
-      </Button>
-      <Button variant="outline" onClick={() => setBulkTarget(true)} disabled={repos.length === 0}>
-        <Eye />
-        {filtered ? "Turn listed on" : "Turn all on"}
-      </Button>
+      {monitoredShown.length > 0 && (
+        <Button variant="outline" onClick={() => setConfirmStopAll(true)}>
+          <EyeOff />
+          {filtered ? "Stop listed" : "Stop all"}
+        </Button>
+      )}
       {syncButton}
+      {addButton}
     </>
   );
 
@@ -378,7 +407,9 @@ export function RepositoriesPage() {
       <PageHeader
         title="Repositories"
         description={
-          data?.lastSyncAt ? `Last synced ${timeAgo(data.lastSyncAt)}` : "Repositories you own on GitHub."
+          data?.lastSyncAt
+            ? `Monitored repositories · last synced ${timeAgo(data.lastSyncAt)}`
+            : "Monitored repositories."
         }
         actions={headerActions}
       />
@@ -393,7 +424,7 @@ export function RepositoriesPage() {
       {data && (
         <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span>Webhook URL:</span>
-          <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{data.webhookUrl}</code>
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono break-all">{data.webhookUrl}</code>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -409,28 +440,28 @@ export function RepositoriesPage() {
       )}
 
       <Card className="py-0">
-        <div className="flex flex-col gap-2 border-b p-4 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Filter repositories"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pl-9"
-            />
+        {tracked.length > 0 && (
+          <div className="flex flex-col gap-2 border-b p-4 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Filter repositories"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={filter} onValueChange={(v) => setFilter(v as Filter)}>
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All monitored</SelectItem>
+                <SelectItem value="problems">With problems</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-            <SelectTrigger className="w-full sm:w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All repositories</SelectItem>
-              <SelectItem value="monitored">Monitored</SelectItem>
-              <SelectItem value="unmonitored">Not monitored</SelectItem>
-              <SelectItem value="problems">With problems</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        )}
         <CardContent className="px-0">
           {isPending ? (
             <div className="flex flex-col gap-3 p-4">
@@ -449,23 +480,34 @@ export function RepositoriesPage() {
                 </Button>
               }
             />
-          ) : repos.length === 0 ? (
+          ) : data.repos.length === 0 ? (
             <EmptyState
-              icon={data.repos.length ? Search : Bell}
-              title={data.repos.length ? "No matching repositories" : "No repositories yet"}
-              description={data.repos.length ? "Try a different filter." : "Run a sync to import your repositories."}
-              action={data.repos.length ? undefined : syncButton}
+              icon={BookMarked}
+              title="No repositories yet"
+              description="Run a sync to import the repositories you own."
+              action={syncButton}
             />
+          ) : tracked.length === 0 ? (
+            <EmptyState
+              icon={Star}
+              title="No monitored repositories"
+              description={`Pick which of your ${data.repos.length} repositories to watch for stars.`}
+              action={addButton}
+            />
+          ) : repos.length === 0 ? (
+            <EmptyState icon={Search} title="No matching repositories" description="Try a different filter." />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="pl-4">Repository</TableHead>
                   <TableHead>Stars</TableHead>
-                  <TableHead>Monitor</TableHead>
                   <TableHead>Mode</TableHead>
                   <TableHead>Webhook</TableHead>
                   <TableHead>Channels</TableHead>
+                  <TableHead className="pr-4">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -484,22 +526,26 @@ export function RepositoriesPage() {
         </CardContent>
       </Card>
 
+      <AddRepositoriesDialog
+        open={adding}
+        repos={candidates}
+        pending={mutations.bulk.isPending}
+        onClose={() => setAdding(false)}
+        onSubmit={addRepos}
+      />
       <StargazersDialog repo={stargazersRepo} onClose={() => setStargazersRepo(null)} />
       <ConfirmDialog
-        open={bulkTarget !== null}
-        onOpenChange={(open) => !open && setBulkTarget(null)}
-        title={bulkTarget ? "Turn on monitoring?" : "Turn off monitoring?"}
+        open={confirmStopAll}
+        onOpenChange={setConfirmStopAll}
+        title="Stop monitoring?"
         description={
-          bulkTarget
-            ? `Monitor ${repos.length} ${filtered ? "listed " : ""}repositories. Webhooks are created on GitHub ` +
-              "for repos in webhook or both mode, so check the webhook URL first."
-            : `Stop monitoring ${repos.length} ${filtered ? "listed " : ""}repositories and remove their webhooks ` +
-              "from GitHub."
+          `Stop monitoring ${monitoredShown.length} ${filtered ? "listed " : ""}` +
+          `${monitoredShown.length === 1 ? "repository" : "repositories"} and remove their webhooks from GitHub.`
         }
-        confirmLabel={bulkTarget ? "Turn on" : "Turn off"}
-        destructive={bulkTarget === false}
+        confirmLabel="Stop monitoring"
+        destructive
         pending={mutations.bulk.isPending}
-        onConfirm={() => bulkTarget !== null && runBulk(bulkTarget)}
+        onConfirm={stopAll}
       />
     </>
   );
