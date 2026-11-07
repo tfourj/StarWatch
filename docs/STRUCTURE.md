@@ -12,6 +12,8 @@ StarWatch/
 ├── docker/entrypoint.sh        Fixes /data ownership, drops to the bun user
 ├── drizzle/                    Generated SQL migrations (applied on startup)
 ├── drizzle.config.ts           drizzle-kit config
+├── scripts/screenshots.sh      Regenerates README screenshots from demo data (Docker only)
+├── scripts/screenshots/        Demo data seed and headless Chrome capture
 ├── vite.config.ts              Frontend build and dev proxy
 ├── docs/
 │   ├── STRUCTURE.md            This file

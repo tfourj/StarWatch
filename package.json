@@ -13,7 +13,8 @@
     "start": "bun dist/server/index.js",
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "screenshots": "sh scripts/screenshots.sh"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.107.1",

@@ -19,5 +19,5 @@
       "@shared/*": ["./src/shared/*"]
     }
   },
-  "include": ["src", "web/src", "tests", "vite.config.ts", "drizzle.config.ts"]
+  "include": ["src", "web/src", "tests", "scripts", "vite.config.ts", "drizzle.config.ts"]
 }
