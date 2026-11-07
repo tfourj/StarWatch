@@ -168,7 +168,21 @@ function ChannelPicker({
 }
 
 function WebhookCell({ repo, onPing }: { repo: Repo; onPing: () => void }) {
-  if (!repo.monitored) return <span className="text-xs text-muted-foreground">Off</span>;
+  if (!repo.monitored) {
+    if (repo.hookStatus !== "error") return <span className="text-xs text-muted-foreground">Off</span>;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="destructive" className="cursor-help">
+            Not removed
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          The webhook is still on GitHub. The next sync retries. {repo.hookError}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
   if (repo.mode === "polling") {
     return (
       <span className="text-xs text-muted-foreground">
@@ -314,7 +328,7 @@ export function RepositoriesPage() {
       if (q && !r.fullName.toLowerCase().includes(q)) return false;
       if (filter === "monitored") return r.monitored;
       if (filter === "unmonitored") return !r.monitored;
-      if (filter === "problems") return r.monitored && (r.hookStatus === "error" || Boolean(r.backfillError));
+      if (filter === "problems") return r.hookStatus === "error" || (r.monitored && Boolean(r.backfillError));
       return true;
     });
   }, [data, query, filter]);
