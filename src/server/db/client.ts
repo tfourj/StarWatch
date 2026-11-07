@@ -41,3 +41,8 @@ export function getDb(): DB {
 export function setDb(db: DB) {
   instance = db;
 }
+
+/** Drizzle types bun-sqlite `.run()` as void, but Bun returns `{ changes, lastInsertRowid }`. */
+export function affected(result: unknown): number {
+  return (result as { changes?: number } | undefined)?.changes ?? 0;
+}

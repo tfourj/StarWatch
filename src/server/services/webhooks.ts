@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { getDb } from "../db/client";
+import { affected, getDb } from "../db/client";
 import { repositories } from "../db/schema";
 import { recordStarEvent } from "./stars";
 
@@ -71,9 +71,10 @@ export function handleStarWebhook(payload: StarWebhookPayload, deliveryId: strin
 
 export function handlePing(payload: PingPayload): number {
   if (!payload.repository?.id) return 0;
-  return getDb()
+  const result = getDb()
     .update(repositories)
     .set({ hookStatus: "active", hookError: null, hookCheckedAt: new Date(), hookId: payload.hook_id ?? undefined })
     .where(and(eq(repositories.githubId, payload.repository.id), eq(repositories.monitored, true)))
-    .run().changes;
+    .run();
+  return affected(result);
 }

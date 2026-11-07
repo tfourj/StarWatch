@@ -1,5 +1,5 @@
 import { lt } from "drizzle-orm";
-import { getDb } from "../db/client";
+import { affected, getDb } from "../db/client";
 import { webhookDeliveries } from "../db/schema";
 import { logger } from "../logger";
 import { processDueDeliveries } from "../notifications/worker";
@@ -35,7 +35,7 @@ async function syncTick() {
 
 function cleanupTick() {
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60_000);
-  const removed = getDb().delete(webhookDeliveries).where(lt(webhookDeliveries.receivedAt, cutoff)).run().changes;
+  const removed = affected(getDb().delete(webhookDeliveries).where(lt(webhookDeliveries.receivedAt, cutoff)).run());
   if (removed) log.info("old webhook delivery ids removed", { removed });
 }
 

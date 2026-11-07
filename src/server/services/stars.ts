@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { getDb } from "../db/client";
+import { affected, getDb } from "../db/client";
 import { repositories, stargazers, starEvents, type Repository, type StarEvent } from "../db/schema";
 import { logger } from "../logger";
 import { enqueueDeliveries } from "../notifications/dispatcher";
@@ -31,7 +31,8 @@ export function recordStarEvent(repo: Repository, input: StarInput, options: { n
 
       let changed: number;
       if (input.action === "created") {
-        changed = tx
+        changed = affected(
+          tx
           .insert(stargazers)
           .values({
             repositoryId: repo.id,
@@ -41,12 +42,15 @@ export function recordStarEvent(repo: Repository, input: StarInput, options: { n
             starredAt: input.starredAt ?? new Date(),
           })
           .onConflictDoNothing()
-          .run().changes;
+          .run(),
+        );
       } else {
-        changed = tx
+        changed = affected(
+          tx
           .delete(stargazers)
           .where(and(eq(stargazers.repositoryId, repo.id), eq(stargazers.githubUserId, input.actor.id)))
-          .run().changes;
+          .run(),
+        );
       }
 
       // Before the initial import we cannot tell duplicates apart, so only dedupe once backfilled.
