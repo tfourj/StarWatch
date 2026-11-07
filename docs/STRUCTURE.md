@@ -44,6 +44,7 @@ StarWatch/
 │       ├── lib/                API client, auth client, response types, utilities
 │       ├── hooks/              Session and setup-status queries
 │       ├── components/ui/      shadcn/ui components
+│       ├── components/repos/   Repository dialogs (add repositories, stargazers)
 │       ├── components/         Layout, sidebar, shared widgets
 │       └── pages/              Dashboard, Repositories, Events, Channels, Settings, auth pages
 └── tests/                      bun test suites
