@@ -103,6 +103,16 @@ describe("setMonitoringForRepos", () => {
     ]);
   });
 
+  test("turning a repo on clears the previous import error so it shows as queued", () => {
+    const failed = addRepo("u1", 1, { backfillError: "403 Resource not accessible" });
+    const done = addRepo("u1", 2, { backfilledAt: new Date(), backfillError: "GitHub only lists the first 40000" });
+    setMonitoringForRepos("u1", true, [failed.id, done.id]);
+    const rows = ctx.db.select().from(repositories).all();
+    expect(rows.find((r) => r.id === failed.id)?.backfillError).toBeNull();
+    // A finished import keeps its note.
+    expect(rows.find((r) => r.id === done.id)?.backfillError).toContain("40000");
+  });
+
   test("turning off still queues cleanup for leftover webhooks", () => {
     addRepo("u1", 1, { monitored: false, hookId: 55, hookStatus: "active" });
     const result = setMonitoringForRepos("u1", false);
