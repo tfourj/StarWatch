@@ -334,7 +334,7 @@ export function generateDemoData(now = Date.now()): DemoData {
     for (const channelId of targets) {
       if (channelId === 2 && action === "deleted") continue;
       // One retrying and one failed delivery so the statuses show up.
-      const status = i === 1 && channelId === 2 ? "retrying" : i === 5 && channelId === 3 ? "failed" : "success";
+      const status = i === 1 && channelId === 2 ? "retrying" : i === 6 && channelId === 3 ? "failed" : "success";
       deliveries.push({
         id: deliveries.length + 1,
         eventId: event.id,
