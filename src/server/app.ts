@@ -59,7 +59,7 @@ export function createApp() {
   app.use("/api/*", async (c, next) => {
     const started = Date.now();
     await next();
-    const level = c.res.status >= 500 ? "error" : "debug";
+    const level = c.res.status >= 500 && c.res.status !== 502 ? "error" : c.res.status >= 400 ? "warn" : "debug";
     log[level]("request", {
       method: c.req.method,
       path: c.req.path,
