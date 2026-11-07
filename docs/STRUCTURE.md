@@ -17,7 +17,9 @@ StarWatch/
 │   ├── STRUCTURE.md            This file
 │   ├── DATABASE.md             Database schema
 │   ├── CONFIGURATION.md        Setup, env vars, channels, reverse proxy notes
-│   └── BUILD.md                Building from source, CI images, development
+│   ├── BUILD.md                Building from source, CI images, development
+│   ├── assets/                 README logo (light and dark)
+│   └── screenshots/            README screenshots
 ├── .env.example                Example environment for docker compose
 ├── src/
 │   ├── server/
