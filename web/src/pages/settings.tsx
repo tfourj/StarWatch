@@ -4,7 +4,7 @@ import { CheckCircle2, Copy, ExternalLink, KeyRound, Plus, RefreshCw, Trash2, Us
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
-import { ConfirmDialog, ErrorNote, PageHeader, Spinner } from "@/components/shared";
+import { ConfirmDialog, ErrorNote, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -792,7 +792,6 @@ export function SettingsPage({ user }: { user: CurrentUser }) {
 
   return (
     <>
-      <PageHeader title="Settings" />
       {error && <ErrorNote>{error.message}</ErrorNote>}
       <Tabs value={tab} onValueChange={(value) => setParams({ tab: value }, { replace: true })}>
         <TabsList>
