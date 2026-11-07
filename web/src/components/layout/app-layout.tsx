@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Suspense, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { GitHubIcon } from "@/components/icons";
 import { useTheme } from "@/components/theme-provider";
 import { UserAvatar } from "@/components/shared";
 import { Button } from "@/components/ui/button";
@@ -147,11 +148,33 @@ function UserMenu({ user }: { user: CurrentUser }) {
   );
 }
 
+const REPO_URL = "https://github.com/tfourj/StarWatch";
+
+function RepoLink() {
+  return (
+    <a
+      href={REPO_URL}
+      target="_blank"
+      rel="noreferrer"
+      className={
+        "flex items-center gap-2 rounded-md px-3 py-2 text-xs text-muted-foreground transition-colors " +
+        "hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+      }
+    >
+      <GitHubIcon className="size-4" />
+      tfourj/StarWatch
+    </a>
+  );
+}
+
 function SidebarBody({ user, onNavigate }: { user: CurrentUser; onNavigate?: () => void }) {
   return (
     <>
       <Brand />
       <NavItems onNavigate={onNavigate} />
+      <div className="px-3 pb-2">
+        <RepoLink />
+      </div>
       <div className="flex flex-col gap-3 border-t border-sidebar-border p-3">
         <ThemeToggle />
         <UserMenu user={user} />
