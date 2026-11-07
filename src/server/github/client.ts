@@ -62,6 +62,18 @@ export interface GitHubHook {
   last_response?: { code: number | null; status: string | null; message: string | null };
 }
 
+export interface GitHubHookDelivery {
+  id: number;
+  guid: string;
+  delivered_at: string;
+  redelivery: boolean;
+  duration: number;
+  status: string;
+  status_code: number;
+  event: string;
+  action: string | null;
+}
+
 export interface RequestOptions {
   query?: Record<string, string | number | undefined>;
   body?: unknown;
@@ -209,6 +221,14 @@ export class GitHubClient {
 
   async pingHook(fullName: string, hookId: number) {
     await this.request("POST", `/repos/${fullName}/hooks/${hookId}/pings`);
+  }
+
+  /** Recent deliveries for a webhook, newest first. */
+  async listHookDeliveries(fullName: string, hookId: number, perPage = 10) {
+    const res = await this.request<GitHubHookDelivery[]>("GET", `/repos/${fullName}/hooks/${hookId}/deliveries`, {
+      query: { per_page: perPage },
+    });
+    return res.data;
   }
 }
 

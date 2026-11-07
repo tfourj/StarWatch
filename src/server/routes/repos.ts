@@ -6,6 +6,7 @@ import { channels, REPO_MODES, repositories, repositoryChannels } from "../db/sc
 import { describeHookError } from "../github/hooks";
 import { HttpError, parseId, readJson } from "../lib/http";
 import { isBackfilling } from "../services/backfill";
+import { pingAndVerify } from "../services/ping";
 import { setMonitoringForRepos, syncRepositories, updateRepoMonitoring } from "../services/repos";
 import { getGithubClient, getUserSettings, getWebhookUrl } from "../services/settings";
 import { listStargazers } from "../services/stargazers";
@@ -120,9 +121,8 @@ export const repos = new Hono<AuthedEnv>()
     const client = getGithubClient(userId);
     if (!client) throw new HttpError(400, "No GitHub token configured");
     try {
-      await client.pingHook(repo.fullName, repo.hookId);
+      return c.json(await pingAndVerify(client, { ...repo, hookId: repo.hookId }));
     } catch (err) {
       throw new HttpError(502, describeHookError(err));
     }
-    return c.json({ ok: true });
   });

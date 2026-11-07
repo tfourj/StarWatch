@@ -113,3 +113,65 @@ export function describeHookError(err: unknown): string {
   }
   return err instanceof Error ? err.message : String(err);
 }
+
+export interface PingResult {
+  ok: boolean;
+  /** HTTP status GitHub got from the webhook URL, null when unknown or unreachable. */
+  statusCode: number | null;
+  message: string;
+}
+
+/** Explain a failed or unconfirmed webhook delivery from GitHub's delivery log. */
+export function describeDelivery(delivery: { statusCode: number | null; status: string }): PingResult {
+  const code = delivery.statusCode && delivery.statusCode > 0 ? delivery.statusCode : null;
+  const detail = delivery.status ? ` (${delivery.status})` : "";
+
+  if (code === null) {
+    return { ok: false, statusCode: null, message: `GitHub could not reach the webhook URL${detail}.` };
+  }
+  if (code >= 200 && code < 300) {
+    return {
+      ok: false,
+      statusCode: code,
+      message:
+        `GitHub got HTTP ${code}, but StarWatch did not receive the ping. ` +
+        "The webhook URL probably points to another server.",
+    };
+  }
+  if (code === 401) {
+    return {
+      ok: false,
+      statusCode: code,
+      message: "StarWatch rejected the signature (HTTP 401). Run Sync webhooks to reset the webhook secret.",
+    };
+  }
+  if (code === 403) {
+    return {
+      ok: false,
+      statusCode: code,
+      message:
+        "HTTP 403: the request was blocked before reaching StarWatch. Check Cloudflare Bot Fight Mode, " +
+        "WAF rules or proxy authentication for /api/webhooks/github.",
+    };
+  }
+  if (code === 404) {
+    return {
+      ok: false,
+      statusCode: code,
+      message: "HTTP 404: the webhook URL was not found. Check the webhook base URL.",
+    };
+  }
+  if (code >= 300 && code < 400) {
+    return {
+      ok: false,
+      statusCode: code,
+      message:
+        `HTTP ${code}: GitHub does not follow redirects. Check http vs https and that no login page ` +
+        "sits in front of /api/webhooks/github.",
+    };
+  }
+  if (code >= 500) {
+    return { ok: false, statusCode: code, message: `HTTP ${code}${detail}: the proxy could not reach StarWatch.` };
+  }
+  return { ok: false, statusCode: code, message: `GitHub got HTTP ${code}${detail}.` };
+}
