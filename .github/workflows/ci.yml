@@ -35,6 +35,7 @@ jobs:
       - run: bun run typecheck
       - run: bun test
       - run: bun run build
+      - run: bun run build:demo
 
   image:
     name: Docker image
