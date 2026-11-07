@@ -18,6 +18,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // The app imports CHANGELOG.md and src/shared from outside the web/ root.
+    fs: { allow: [".."] },
     proxy: {
       "/api": { target: "http://localhost:4321", changeOrigin: false },
     },

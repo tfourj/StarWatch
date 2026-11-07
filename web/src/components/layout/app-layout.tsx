@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Suspense, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { ChangelogDialog } from "@/components/changelog-dialog";
 import { GitHubIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
 import { useTheme } from "@/components/theme-provider";
@@ -151,8 +152,34 @@ function UserMenu({ user }: { user: CurrentUser }) {
 
 const REPO_URL = "https://github.com/tfourj/StarWatch";
 
+const SEEN_VERSION_KEY = "starwatch-seen-version";
+
+function readSeenVersion() {
+  try {
+    return localStorage.getItem(SEEN_VERSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
 function RepoLink() {
   const { data: setup } = useSetupStatus();
+  const [changelogOpen, setChangelogOpen] = useState(false);
+  const [seenVersion, setSeenVersion] = useState(readSeenVersion);
+  const version = setup?.version;
+  const unseen = Boolean(version && seenVersion !== version);
+
+  function openChangelog() {
+    setChangelogOpen(true);
+    if (!version) return;
+    setSeenVersion(version);
+    try {
+      localStorage.setItem(SEEN_VERSION_KEY, version);
+    } catch {
+      // storage may be unavailable
+    }
+  }
+
   const linkClass =
     "rounded-md px-2 py-2 text-xs text-muted-foreground transition-colors " +
     "hover:bg-sidebar-accent/60 hover:text-sidebar-foreground";
@@ -162,17 +189,18 @@ function RepoLink() {
         <GitHubIcon className="size-4" />
         tfourj/StarWatch
       </a>
-      {setup?.version && (
-        <a
-          href={`${REPO_URL}/releases/tag/v${setup.version}`}
-          target="_blank"
-          rel="noreferrer"
-          title="Release notes"
-          className={cn("font-mono tabular-nums", linkClass)}
+      {version && (
+        <button
+          type="button"
+          onClick={openChangelog}
+          title="What's new"
+          className={cn("relative font-mono tabular-nums", linkClass)}
         >
-          v{setup.version}
-        </a>
+          v{version}
+          {unseen && <span className="absolute top-1.5 right-0.5 size-1.5 rounded-full bg-star" />}
+        </button>
       )}
+      <ChangelogDialog open={changelogOpen} currentVersion={version} onOpenChange={setChangelogOpen} />
     </div>
   );
 }
