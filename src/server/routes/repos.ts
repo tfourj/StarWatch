@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AuthedEnv } from "../auth/middleware";
 import { getDb } from "../db/client";
@@ -27,7 +27,7 @@ export const repos = new Hono<AuthedEnv>()
       .select()
       .from(repositories)
       .where(and(eq(repositories.userId, userId), isNull(repositories.removedAt)))
-      .orderBy(repositories.fullName)
+      .orderBy(sql`lower(${repositories.fullName})`)
       .all();
     const ids = rows.map((r) => r.id);
     const links = ids.length
