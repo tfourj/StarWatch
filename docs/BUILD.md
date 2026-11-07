@@ -42,4 +42,16 @@ bun run build        # frontend into dist/web, server bundle into dist/server
 bun run db:generate  # create a migration after editing src/server/db/schema.ts
 ```
 
+## Screenshots
+
+The README screenshots are generated from made-up demo data. Only Docker is needed:
+
+```bash
+sh scripts/screenshots.sh        # dark mode, or pass light
+```
+
+It starts StarWatch with an empty database, seeds it with `scripts/screenshots/seed.ts`, captures each page at
+1440×900 (2×) with headless Chrome and writes `docs/screenshots/*.png`. Edit `SHOTS` in
+`scripts/screenshots/shoot.js` to change the pages.
+
 See [STRUCTURE.md](STRUCTURE.md) for the code layout and [DATABASE.md](DATABASE.md) for the schema.
