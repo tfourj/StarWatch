@@ -10,6 +10,8 @@
     "build": "bun run build:web && bun run build:server",
     "build:web": "vite build",
     "build:server": "bun build src/server/index.ts --target bun --outdir dist/server --minify",
+    "build:demo": "vite build --mode demo",
+    "dev:demo": "vite --mode demo",
     "start": "bun dist/server/index.js",
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",

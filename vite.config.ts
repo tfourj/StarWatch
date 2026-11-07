@@ -1,27 +1,51 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 
-export default defineConfig({
-  root: "web",
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "web/src"),
-      "@shared": path.resolve(import.meta.dirname, "src/shared"),
+const pkg = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "package.json"), "utf8")) as {
+  version: string;
+};
+
+/** Cloudflare Pages: serve index.html for every path so client-side routes work on reload. */
+function spaRedirects(): Plugin {
+  return {
+    name: "starwatch-spa-redirects",
+    apply: "build",
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "_redirects", source: "/* /index.html 200\n" });
     },
-  },
-  build: {
-    outDir: "../dist/web",
-    emptyOutDir: true,
-  },
-  server: {
-    port: 5173,
-    // The app imports CHANGELOG.md and src/shared from outside the web/ root.
-    fs: { allow: [".."] },
-    proxy: {
-      "/api": { target: "http://localhost:4321", changeOrigin: false },
+  };
+}
+
+// `vite build --mode demo` builds a static demo with an in-browser fake API (see web/src/demo).
+export default defineConfig(({ mode }) => {
+  const demo = mode === "demo";
+  return {
+    root: "web",
+    plugins: [react(), tailwindcss(), demo && spaRedirects()],
+    define: {
+      __DEMO__: JSON.stringify(demo),
+      __APP_VERSION__: JSON.stringify(pkg.version),
     },
-  },
+    resolve: {
+      alias: {
+        "@": path.resolve(import.meta.dirname, "web/src"),
+        "@shared": path.resolve(import.meta.dirname, "src/shared"),
+      },
+    },
+    build: {
+      outDir: demo ? "../dist/demo" : "../dist/web",
+      emptyOutDir: true,
+    },
+    server: {
+      port: 5173,
+      // The app imports CHANGELOG.md and src/shared from outside the web/ root.
+      fs: { allow: [".."] },
+      proxy: {
+        "/api": { target: "http://localhost:4321", changeOrigin: false },
+      },
+    },
+  };
 });
