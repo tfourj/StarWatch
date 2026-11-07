@@ -23,7 +23,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api, errorMessage } from "@/lib/api";
-import type { BulkMonitoringResult, ChannelSummary, Repo, RepoMode, ReposResponse, SyncSummary } from "@/lib/types";
+import type {
+  BulkMonitoringResult,
+  ChannelSummary,
+  PingResult,
+  Repo,
+  RepoMode,
+  ReposResponse,
+  SyncSummary,
+} from "@/lib/types";
 import { formatNumber, timeAgo } from "@/lib/utils";
 
 const MODES: { value: RepoMode; label: string }[] = [
@@ -61,9 +69,17 @@ function useRepoMutations() {
   });
 
   const ping = useMutation({
-    mutationFn: (id: number) => api.post(`/repos/${id}/ping`),
-    onSuccess: () => toast.success("Ping sent. GitHub will deliver it within a few seconds."),
-    onError: (err) => toast.error(errorMessage(err)),
+    mutationFn: (repo: Repo) => api.post<PingResult>(`/repos/${repo.id}/ping`),
+    onMutate: (repo) => {
+      toast.loading(`Waiting for GitHub to deliver a ping to ${repo.fullName}...`, { id: `ping-${repo.id}` });
+    },
+    onSuccess: (result, repo) => {
+      const id = `ping-${repo.id}`;
+      if (result.ok) toast.success(`${repo.fullName}: ${result.message}`, { id });
+      else toast.error(`${repo.fullName}: ${result.message}`, { id, duration: 20_000 });
+      invalidate();
+    },
+    onError: (err, repo) => toast.error(errorMessage(err), { id: `ping-${repo.id}` }),
   });
 
   const sync = useMutation({
@@ -169,7 +185,7 @@ function ChannelPicker({
   );
 }
 
-function WebhookCell({ repo, onPing }: { repo: Repo; onPing: () => void }) {
+function WebhookCell({ repo, pinging, onPing }: { repo: Repo; pinging: boolean; onPing: () => void }) {
   if (!repo.monitored) {
     if (repo.hookStatus !== "error") return <span className="text-xs text-muted-foreground">Off</span>;
     return (
@@ -192,27 +208,30 @@ function WebhookCell({ repo, onPing }: { repo: Repo; onPing: () => void }) {
       </span>
     );
   }
-  const badge = <HookBadge status={repo.hookStatus} />;
+  const lastDelivery = repo.lastDeliveryAt
+    ? `Last delivery from GitHub ${timeAgo(repo.lastDeliveryAt)}.`
+    : "No delivery from GitHub received yet.";
   return (
     <div className="flex items-center gap-1.5">
-      {repo.hookError ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="cursor-help">{badge}</span>
-          </TooltipTrigger>
-          <TooltipContent>{repo.hookError}</TooltipContent>
-        </Tooltip>
-      ) : (
-        badge
-      )}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="cursor-help">
+            <HookBadge status={repo.hookStatus} />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          {repo.hookError && <p className="mb-1">{repo.hookError}</p>}
+          <p className={repo.hookError ? "opacity-80" : undefined}>{lastDelivery}</p>
+        </TooltipContent>
+      </Tooltip>
       {repo.hookId && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" onClick={onPing} aria-label="Send test ping">
-              <Zap className="size-3.5" />
+            <Button variant="ghost" size="icon-sm" onClick={onPing} disabled={pinging} aria-label="Send test ping">
+              {pinging ? <Spinner className="size-3.5" /> : <Zap className="size-3.5" />}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Ask GitHub to send a ping</TooltipContent>
+          <TooltipContent>Ask GitHub to send a ping and check it arrives</TooltipContent>
         </Tooltip>
       )}
     </div>
@@ -317,7 +336,11 @@ function RepoRow({
         </Select>
       </TableCell>
       <TableCell>
-        <WebhookCell repo={repo} onPing={() => mutations.ping.mutate(repo.id)} />
+        <WebhookCell
+          repo={repo}
+          pinging={mutations.ping.isPending && mutations.ping.variables?.id === repo.id}
+          onPing={() => mutations.ping.mutate(repo)}
+        />
       </TableCell>
       <TableCell>
         <ChannelPicker

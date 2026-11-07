@@ -82,6 +82,8 @@ export interface Repo {
   hookStatus: HookStatus;
   hookError: string | null;
   hookCheckedAt: string | null;
+  /** Last ping or star delivery received from GitHub. */
+  lastDeliveryAt: string | null;
   backfilledAt: string | null;
   backfillError: string | null;
   /** True while the stargazer import is running. */
@@ -138,6 +140,12 @@ export interface StargazersResponse {
     backfillError: string | null;
     importing: boolean;
   };
+}
+
+export interface PingResult {
+  ok: boolean;
+  statusCode: number | null;
+  message: string;
 }
 
 export interface BulkMonitoringResult {
