@@ -80,13 +80,20 @@ export interface RequestOptions {
   accept?: string;
 }
 
+/**
+ * GitHub keeps separate limits per resource (`x-ratelimit-resource`): `core` is the 5,000/hour REST limit,
+ * other buckets are smaller and reset sooner. Track each one apart so a small bucket never looks like `core`.
+ */
 const rateLimits = new Map<string, RateLimitState>();
+
+const bucketKey = (key: string, resource: string) => `${key}|${resource}`;
 
 /** Keep this many requests in reserve for user-triggered actions. */
 const RESERVE = 50;
 
-export function getRateLimit(key: string): RateLimitState | null {
-  return rateLimits.get(key) ?? null;
+/** The `core` REST limit for a client key, which is what background work and the UI care about. */
+export function getRateLimit(key: string, resource = "core"): RateLimitState | null {
+  return rateLimits.get(bucketKey(key, resource)) ?? null;
 }
 
 export class GitHubClient {
@@ -111,13 +118,16 @@ export class GitHubClient {
   }
 
   private updateRateLimit(headers: Headers, status: number) {
+    const resource = headers.get("x-ratelimit-resource") || "core";
+    const bucket = bucketKey(this.key, resource);
     const limit = Number(headers.get("x-ratelimit-limit"));
     const remaining = Number(headers.get("x-ratelimit-remaining"));
     const reset = Number(headers.get("x-ratelimit-reset"));
-    const prev = rateLimits.get(this.key);
+    const prev = rateLimits.get(bucket);
     const state: RateLimitState = {
       limit: Number.isFinite(limit) && headers.has("x-ratelimit-limit") ? limit : (prev?.limit ?? 5000),
-      remaining: Number.isFinite(remaining) && headers.has("x-ratelimit-remaining") ? remaining : (prev?.remaining ?? 5000),
+      remaining:
+        Number.isFinite(remaining) && headers.has("x-ratelimit-remaining") ? remaining : (prev?.remaining ?? 5000),
       resetAt: Number.isFinite(reset) && reset > 0 ? reset * 1000 : (prev?.resetAt ?? 0),
       blockedUntil: prev?.blockedUntil ?? 0,
     };
@@ -126,9 +136,13 @@ export class GitHubClient {
     if ((status === 403 || status === 429) && (state.remaining === 0 || retryAfter > 0)) {
       const until = retryAfter > 0 ? Date.now() + retryAfter * 1000 : state.resetAt || Date.now() + 60_000;
       state.blockedUntil = Math.max(until, Date.now() + 1000);
-      log.warn("rate limited, backing off", { key: this.key, until: new Date(state.blockedUntil).toISOString() });
+      log.warn("rate limited, backing off", {
+        key: this.key,
+        resource,
+        until: new Date(state.blockedUntil).toISOString(),
+      });
     }
-    rateLimits.set(this.key, state);
+    rateLimits.set(bucket, state);
     return state;
   }
 
