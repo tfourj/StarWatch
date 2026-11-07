@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { getChannelType } from "../../shared/channels";
+import { validateFrequencyTiers, type FrequencyTier } from "../../shared/frequency";
 import type { MessageTemplates } from "../../shared/templates";
 import type { AuthedEnv } from "../auth/middleware";
 import { getDb } from "../db/client";
@@ -29,6 +30,7 @@ interface ChannelBody {
   notifyStar?: boolean;
   notifyUnstar?: boolean;
   milestoneEvery?: number | null;
+  frequencyTiers?: FrequencyTier[] | null;
   templates?: Partial<MessageTemplates> | null;
 }
 
@@ -43,6 +45,7 @@ function serialize(channel: Channel, repoIds: number[]) {
     notifyStar: channel.notifyStar,
     notifyUnstar: channel.notifyUnstar,
     milestoneEvery: channel.milestoneEvery,
+    frequencyTiers: channel.frequencyTiers,
     templates: channel.templates,
     config: masked.config,
     secrets: masked.secrets,
@@ -67,6 +70,19 @@ function cleanMilestone(value: unknown): number | null {
   const n = Number(value);
   if (!Number.isInteger(n) || n < 2 || n > 1_000_000) throw new HttpError(400, "Milestone must be a whole number ≥ 2");
   return n;
+}
+
+function cleanFrequency(value: unknown): FrequencyTier[] | null {
+  if (value === null || value === undefined) return null;
+  try {
+    return validateFrequencyTiers(value);
+  } catch (err) {
+    throw new HttpError(400, err instanceof Error ? err.message : String(err));
+  }
+}
+
+function assertOneThinningMode(milestoneEvery: number | null, tiers: FrequencyTier[] | null) {
+  if (milestoneEvery && tiers) throw new HttpError(400, "Use milestones or dynamic frequency, not both");
 }
 
 function ownedChannel(userId: string, id: number) {
@@ -124,6 +140,9 @@ export const channelRoutes = new Hono<AuthedEnv>()
     if (!name) throw new HttpError(400, "Name is required");
     if (!body.type || !getChannelType(body.type)) throw new HttpError(400, "Unknown channel type");
     const config = wrapValidation(() => mergeChannelConfig(body.type!, null, body.config ?? {}));
+    const milestoneEvery = cleanMilestone(body.milestoneEvery);
+    const frequencyTiers = cleanFrequency(body.frequencyTiers);
+    assertOneThinningMode(milestoneEvery, frequencyTiers);
 
     const created = getDb()
       .insert(channels)
@@ -136,7 +155,8 @@ export const channelRoutes = new Hono<AuthedEnv>()
         allRepos: body.allRepos ?? true,
         notifyStar: body.notifyStar ?? true,
         notifyUnstar: body.notifyUnstar ?? true,
-        milestoneEvery: cleanMilestone(body.milestoneEvery),
+        milestoneEvery,
+        frequencyTiers,
         templates: cleanTemplates(body.templates),
       })
       .returning()
@@ -164,6 +184,11 @@ export const channelRoutes = new Hono<AuthedEnv>()
     if (body.notifyStar !== undefined) patch.notifyStar = Boolean(body.notifyStar);
     if (body.notifyUnstar !== undefined) patch.notifyUnstar = Boolean(body.notifyUnstar);
     if (body.milestoneEvery !== undefined) patch.milestoneEvery = cleanMilestone(body.milestoneEvery);
+    if (body.frequencyTiers !== undefined) patch.frequencyTiers = cleanFrequency(body.frequencyTiers);
+    assertOneThinningMode(
+      patch.milestoneEvery !== undefined ? patch.milestoneEvery : existing.milestoneEvery,
+      patch.frequencyTiers !== undefined ? patch.frequencyTiers : existing.frequencyTiers,
+    );
     if (body.templates !== undefined) patch.templates = cleanTemplates(body.templates);
 
     if (Object.keys(patch).length) getDb().update(channels).set(patch).where(eq(channels.id, existing.id)).run();

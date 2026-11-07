@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { notifiesAt } from "../../shared/frequency";
 import { getDb } from "../db/client";
 import { channels, notificationDeliveries, repositoryChannels, type Channel, type StarEvent } from "../db/schema";
 import { logger } from "../logger";
@@ -8,7 +9,8 @@ const log = logger.child("dispatch");
 
 /** Decide whether a channel wants this event. */
 export function channelMatches(
-  channel: Pick<Channel, "enabled" | "allRepos" | "notifyStar" | "notifyUnstar" | "milestoneEvery">,
+  channel: Pick<Channel, "enabled" | "allRepos" | "notifyStar" | "notifyUnstar" | "milestoneEvery"> &
+    Partial<Pick<Channel, "frequencyTiers">>,
   event: Pick<StarEvent, "action" | "starCount">,
   repoAssigned: boolean,
 ): boolean {
@@ -19,6 +21,10 @@ export function channelMatches(
   if (channel.milestoneEvery && channel.milestoneEvery > 0) {
     if (event.action !== "created") return false;
     if (event.starCount <= 0 || event.starCount % channel.milestoneEvery !== 0) return false;
+  }
+  // Dynamic frequency thins out star alerts as a repo grows. Unstars follow the unstar setting.
+  if (channel.frequencyTiers?.length && event.action === "created") {
+    if (!notifiesAt(event.starCount, channel.frequencyTiers)) return false;
   }
   return true;
 }
