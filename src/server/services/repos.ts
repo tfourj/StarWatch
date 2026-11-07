@@ -218,9 +218,14 @@ export function setMonitoringForRepos(
   }
 
   const ids = needsHookWork.map((r) => r.id);
+  // Only count repos where a webhook is actually created or removed (polling-only repos need none).
+  const hooksPending = needsHookWork.filter((r) => {
+    const next = { ...r, monitored, mode: mode ?? r.mode };
+    return wantsWebhook(next) || r.hookId !== null || r.hookStatus !== "none";
+  }).length;
   if (ids.length) void syncHooksFor(userId, ids);
-  log.info("bulk monitoring change", { userId, monitored, mode, updated: changed.length, hooksPending: ids.length });
-  return { updated: changed.length, hooksPending: ids.length };
+  log.info("bulk monitoring change", { userId, monitored, mode, updated: changed.length, hooksPending });
+  return { updated: changed.length, hooksPending };
 }
 
 const hookQueues = new Map<string, Promise<void>>();

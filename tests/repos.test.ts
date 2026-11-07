@@ -94,6 +94,8 @@ describe("setMonitoringForRepos", () => {
     const b = addRepo("u1", 2, { monitored: true, mode: "webhook" });
     const result = setMonitoringForRepos("u1", true, [a.id, b.id], "polling");
     expect(result.updated).toBe(2);
+    // Repo b had no webhook and polling needs none, so nothing to create or remove.
+    expect(result.hooksPending).toBe(0);
     const modes = ctx.db.select().from(repositories).all().map((r) => [r.githubId, r.monitored, r.mode]);
     expect(modes).toEqual([
       [1, true, "polling"],
