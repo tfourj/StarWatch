@@ -115,6 +115,28 @@ export interface SyncSummary {
   hookErrors: number;
 }
 
+export interface Stargazer {
+  githubUserId: number;
+  login: string;
+  avatarUrl: string | null;
+  starredAt: string | null;
+}
+
+export interface StargazersResponse {
+  items: Stargazer[];
+  total: number;
+  page: number;
+  pageSize: number;
+  repo: {
+    id: number;
+    fullName: string;
+    htmlUrl: string;
+    starCount: number;
+    backfilledAt: string | null;
+    backfillError: string | null;
+  };
+}
+
 export interface BulkMonitoringResult {
   updated: number;
   hooksPending: number;

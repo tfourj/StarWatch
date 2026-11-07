@@ -3,6 +3,7 @@ import { BookMarked, Bell, ChevronDown, Copy, Eye, EyeOff, Lock, RefreshCw, Sear
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
+import { StargazersDialog } from "@/components/repos/stargazers-dialog";
 import { ConfirmDialog, EmptyState, ErrorNote, HookBadge, PageHeader, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -238,10 +239,12 @@ function RepoRow({
   repo,
   channels,
   mutations,
+  onShowStargazers,
 }: {
   repo: Repo;
   channels: ChannelSummary[];
   mutations: ReturnType<typeof useRepoMutations>;
+  onShowStargazers: () => void;
 }) {
   const busy = mutations.update.isPending && mutations.update.variables?.id === repo.id;
   return (
@@ -264,10 +267,15 @@ function RepoRow({
         {repo.description && <p className="mt-0.5 truncate text-xs text-muted-foreground">{repo.description}</p>}
       </TableCell>
       <TableCell className="tabular-nums">
-        <span className="inline-flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onShowStargazers}
+          title="Show stargazers"
+          className="inline-flex items-center gap-1 rounded px-1 py-0.5 hover:bg-muted"
+        >
           <Star className="size-3.5 fill-star text-star" />
           {formatNumber(repo.starCount)}
-        </span>
+        </button>
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
@@ -334,6 +342,7 @@ export function RepositoriesPage() {
   }, [data, query, filter]);
 
   const [bulkTarget, setBulkTarget] = useState<boolean | null>(null);
+  const [stargazersRepo, setStargazersRepo] = useState<Repo | null>(null);
   const filtered = query.trim() !== "" || filter !== "all";
 
   function runBulk(monitored: boolean) {
@@ -461,7 +470,13 @@ export function RepositoriesPage() {
               </TableHeader>
               <TableBody>
                 {repos.map((repo) => (
-                  <RepoRow key={repo.id} repo={repo} channels={data.channels} mutations={mutations} />
+                  <RepoRow
+                    key={repo.id}
+                    repo={repo}
+                    channels={data.channels}
+                    mutations={mutations}
+                    onShowStargazers={() => setStargazersRepo(repo)}
+                  />
                 ))}
               </TableBody>
             </Table>
@@ -469,6 +484,7 @@ export function RepositoriesPage() {
         </CardContent>
       </Card>
 
+      <StargazersDialog repo={stargazersRepo} onClose={() => setStargazersRepo(null)} />
       <ConfirmDialog
         open={bulkTarget !== null}
         onOpenChange={(open) => !open && setBulkTarget(null)}
