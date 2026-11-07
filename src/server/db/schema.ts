@@ -86,7 +86,7 @@ export const userSettings = sqliteTable("user_settings", {
   githubScopes: text("github_scopes", { mode: "json" }).$type<string[] | null>(),
   githubTokenCheckedAt: integer("github_token_checked_at", { mode: "timestamp_ms" }),
   pollingIntervalMinutes: integer("polling_interval_minutes").notNull().default(15),
-  autoMonitorNew: integer("auto_monitor_new", { mode: "boolean" }).notNull().default(true),
+  autoMonitorNew: integer("auto_monitor_new", { mode: "boolean" }).notNull().default(false),
   templates: text("templates", { mode: "json" }).$type<Record<string, string> | null>(),
   lastSyncAt: integer("last_sync_at", { mode: "timestamp_ms" }),
   lastSyncError: text("last_sync_error"),

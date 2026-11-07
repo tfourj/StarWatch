@@ -35,7 +35,7 @@ Values marked *encrypted* are AES-256-GCM ciphertext (key derived from `ENCRYPTI
 | `github_scopes`            | JSON array from `X-OAuth-Scopes`                |
 | `github_token_checked_at`  |                                                 |
 | `polling_interval_minutes` | Default 15                                      |
-| `auto_monitor_new`         | Monitor newly discovered repos automatically    |
+| `auto_monitor_new`         | Monitor newly discovered repos (default off)    |
 | `templates`                | JSON `{ starTitle, starBody, unstarTitle, unstarBody }` |
 | `last_sync_at`             | Last repository and webhook sync                |
 | `last_poll_at`             | Last polling run                                |
