@@ -14,14 +14,33 @@ Self-hosted star alerts for your GitHub repos. Get notified when someone stars o
 ## Install with Docker Compose
 
 1. Download [docker-compose.yml](docker-compose.yml).
-2. Start it with your public URL:
+2. Create a `.env` file next to it:
 
    ```bash
-   BASE_URL=https://starwatch.example.com docker compose up -d
+   # Public HTTPS URL, used for GitHub webhooks and login
+   BASE_URL=https://starwatch.example.com
+   TZ=Europe/Berlin
+
+   # Generate each with: openssl rand -base64 32
+   # Optional, generated into /data/secrets.json if empty. Never change ENCRYPTION_SECRET later.
+   BETTER_AUTH_SECRET=
+   ENCRYPTION_SECRET=
+
+   # Optional
+   PORT=4321
+   ALLOW_REGISTRATION=false
+   GITHUB_CLIENT_ID=
+   GITHUB_CLIENT_SECRET=
    ```
 
-3. Open the URL and create the first account. It becomes the admin.
-4. In **Settings → GitHub**, add a classic token with `public_repo` (or `repo`) and `admin:repo_hook` scopes.
+3. Start it:
+
+   ```bash
+   docker compose up -d
+   ```
+
+4. Open `BASE_URL` and create the first account. It becomes the admin.
+5. In **Settings → GitHub**, add a classic token with `public_repo` (or `repo`) and `admin:repo_hook` scopes.
 
 See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for all options and [docs/BUILD.md](docs/BUILD.md) to build from source.
 
