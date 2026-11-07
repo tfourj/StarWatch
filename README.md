@@ -134,6 +134,7 @@ and visible in **Events**, where you can also retry by hand.
 ## Limitations
 
 - Polling compares counts, so a star and an unstar between two polls cancel out and are missed. Webhooks catch both.
+- GitHub lists at most 40,000 stargazers per repo. Larger repos are imported partially and should use webhook mode.
 - Removing the GitHub token or deleting a user leaves existing webhooks on GitHub. Disable monitoring first to remove
   them.
 
