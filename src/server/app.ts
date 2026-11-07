@@ -54,6 +54,18 @@ function staticHandler() {
   };
 }
 
+/** Serves only the GitHub webhook receiver, so a tunnel never exposes the UI or API. */
+export function createWebhookApp() {
+  const app = new Hono();
+  app.route("/api/webhooks", webhooks);
+  app.all("*", (c) => c.json({ error: "Not found" }, 404));
+  app.onError((err, c) => {
+    log.error("unhandled webhook error", { path: c.req.path, err });
+    return c.json({ error: "Internal server error" }, 500);
+  });
+  return app;
+}
+
 export function createApp() {
   const app = new Hono<AppEnv>();
 

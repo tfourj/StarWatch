@@ -5,6 +5,8 @@ import { logger } from "./logger";
 
 export interface AppConfig {
   port: number;
+  /** Local port for the webhook-only listener the Cloudflare tunnel points at. */
+  tunnelPort: number;
   baseUrl: string;
   dataDir: string;
   dbPath: string;
@@ -77,6 +79,11 @@ function loadConfig(): AppConfig {
   const port = Number(process.env.PORT ?? 4321);
   if (!Number.isInteger(port) || port <= 0) throw new Error(`invalid PORT: ${process.env.PORT}`);
 
+  const tunnelPort = Number(process.env.TUNNEL_PORT ?? 4322);
+  if (!Number.isInteger(tunnelPort) || tunnelPort <= 0 || tunnelPort === port) {
+    throw new Error(`invalid TUNNEL_PORT: ${process.env.TUNNEL_PORT}`);
+  }
+
   const isProduction = process.env.NODE_ENV === "production";
   const dataDir = path.resolve(process.env.DATA_DIR ?? (isProduction ? "/data" : "./data"));
   mkdirSync(dataDir, { recursive: true });
@@ -92,6 +99,7 @@ function loadConfig(): AppConfig {
 
   return {
     port,
+    tunnelPort,
     baseUrl: normalizeBaseUrl(baseUrl),
     dataDir,
     dbPath: process.env.DATABASE_PATH ?? path.join(dataDir, "starwatch.db"),
