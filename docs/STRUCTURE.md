@@ -6,7 +6,7 @@ and the built React frontend on one port.
 ```text
 StarWatch/
 ├── Dockerfile                  Multi-stage build (deps, build, slim runtime)
-├── docker-compose.yml          Single service with a /data volume
+├── docker-compose-local.yml    Builds the image from source, /data volume
 ├── docker/entrypoint.sh        Fixes /data ownership, drops to the bun user
 ├── drizzle/                    Generated SQL migrations (applied on startup)
 ├── drizzle.config.ts           drizzle-kit config

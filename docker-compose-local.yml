@@ -1,7 +1,7 @@
 services:
   starwatch:
     build: .
-    image: starwatch:latest
+    image: starwatch:local
     container_name: starwatch
     restart: unless-stopped
     ports:
