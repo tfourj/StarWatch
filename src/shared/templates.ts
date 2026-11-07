@@ -25,3 +25,16 @@ export const DEFAULT_TEMPLATES: MessageTemplates = {
   unstarTitle: "Star removed from {repo}",
   unstarBody: "{user} unstarred {repo}. It now has {stars} stars.",
 };
+
+/** Replace {name} placeholders. Unknown placeholders are left untouched, {{ and }} escape braces. */
+export function renderTemplate(template: string, vars: Partial<Record<string, string | number>>): string {
+  return template
+    .replace(/\{\{|\}\}|\{([a-z_]+)\}/g, (match, name: string | undefined) => {
+      if (match === "{{") return "\u0000LB";
+      if (match === "}}") return "\u0000RB";
+      const value = name ? vars[name] : undefined;
+      return value === undefined || value === null ? match : String(value);
+    })
+    .replace(/\u0000LB/g, "{")
+    .replace(/\u0000RB/g, "}");
+}
