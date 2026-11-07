@@ -48,7 +48,7 @@ notification per star.
 | `LOG_LEVEL`            | `info`                    | `debug`, `info`, `warn` or `error`                                 |
 | `LOG_BUFFER_SIZE`      | `1000`                    | Recent log lines kept in memory for the Logs page                  |
 | `TUNNEL_PORT`          | `4322`                    | Local webhook-only port the Cloudflare tunnel points at            |
-| `CLOUDFLARED_PATH`     | found on `PATH`           | Path to the `cloudflared` binary                                   |
+| `CLOUDFLARED_PATH`     | downloaded                | Use your own `cloudflared` binary instead of the managed one       |
 
 If `BETTER_AUTH_SECRET` or `ENCRYPTION_SECRET` is not set, StarWatch generates one into `/data/secrets.json` and logs a
 warning. Back up that file together with the database: without the encryption secret, stored tokens and channel
@@ -109,6 +109,10 @@ by default. Admins turn it on in **Settings → Cloudflared**. The tunnel only e
   updates all webhooks when it does. Use **both** mode on repositories so polling covers restarts.
 
 While the tunnel is on, it sets the webhook URL and the webhook base URL setting is ignored.
+
+`cloudflared` is not part of the image. StarWatch downloads the latest release from GitHub into `/data/bin` when the
+tunnel starts, checks its SHA-256 digest, and checks for updates on start, daily, and with the refresh button. A new
+version restarts the tunnel. With `CLOUDFLARED_PATH` set, StarWatch uses that binary and never updates it.
 
 ## Reverse proxy, Coolify and Cloudflare
 
