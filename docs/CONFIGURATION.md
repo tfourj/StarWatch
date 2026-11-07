@@ -46,6 +46,7 @@ notification per star.
 | `GITHUB_CLIENT_SECRET` |                           | Secret for the OAuth app                                           |
 | `SYNC_INTERVAL_MINUTES`| `60`                      | How often repos and webhooks are synced                            |
 | `LOG_LEVEL`            | `info`                    | `debug`, `info`, `warn` or `error`                                 |
+| `LOG_BUFFER_SIZE`      | `1000`                    | Recent log lines kept in memory for the Logs page                  |
 
 If `BETTER_AUTH_SECRET` or `ENCRYPTION_SECRET` is not set, StarWatch generates one into `/data/secrets.json` and logs a
 warning. Back up that file together with the database: without the encryption secret, stored tokens and channel
@@ -55,7 +56,8 @@ For GitHub OAuth login, set the OAuth app callback URL to `BASE_URL/api/auth/cal
 existing users (matched by email) unless `ALLOW_REGISTRATION=true`.
 
 All data lives in the `/data` volume: `starwatch.db` (SQLite) and `secrets.json`. Migrations run on startup. Logs are
-JSON lines on stdout. `GET /api/health` is used by the Docker healthcheck.
+JSON lines on stdout (`docker logs starwatch`). Admins can also read recent lines on the **Logs** page, filtered by
+level, area or text. `GET /api/health` is used by the Docker healthcheck.
 
 ## Notification channels
 
