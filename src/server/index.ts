@@ -6,6 +6,7 @@ import { startScheduler, stopScheduler } from "./jobs/scheduler";
 import { logger } from "./logger";
 import { VERSION } from "./routes/health";
 import { getWebhookSecret, getWebhookUrl } from "./services/settings";
+import { startTunnel, stopTunnel } from "./services/tunnel";
 
 const config = getConfig();
 const db = initDb(config.dbPath);
@@ -33,10 +34,12 @@ logger.info("StarWatch started", {
 });
 
 if (process.env.DISABLE_JOBS !== "true") startScheduler();
+startTunnel();
 
 function shutdown(signal: string) {
   logger.info("shutting down", { signal });
   stopScheduler();
+  stopTunnel();
   server.stop();
   db.$client.close();
   process.exit(0);
