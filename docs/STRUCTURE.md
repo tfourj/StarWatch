@@ -1,0 +1,43 @@
+# Project Structure
+
+StarWatch is a single Bun process that serves the JSON API, the GitHub webhook receiver, the background jobs
+and the built React frontend on one port.
+
+```text
+StarWatch/
+├── Dockerfile                  Multi-stage build (deps, build, slim runtime)
+├── docker-compose.yml          Single service with a /data volume
+├── docker/entrypoint.sh        Fixes /data ownership, drops to the bun user
+├── drizzle/                    Generated SQL migrations (applied on startup)
+├── drizzle.config.ts           drizzle-kit config
+├── vite.config.ts              Frontend build and dev proxy
+├── docs/
+│   ├── STRUCTURE.md            This file
+│   └── DATABASE.md             Database schema
+├── src/
+│   ├── server/
+│   │   ├── index.ts            Entry point: config, migrations, HTTP server, jobs
+│   │   ├── app.ts              Hono app: API routes, static files, SPA fallback
+│   │   ├── config.ts           Env vars and auto-generated secrets in /data
+│   │   ├── logger.ts           JSON logger for stdout
+│   │   ├── db/                 Drizzle client, schema and migrator
+│   │   ├── auth/               Better Auth setup, first-user registration, session middleware
+│   │   ├── lib/                Encryption, template rendering, small helpers
+│   │   ├── github/             GitHub REST client, rate limits, signatures, stargazer diffing, hooks
+│   │   ├── services/           Settings, repo sync, star event recording, polling, backfill
+│   │   ├── notifications/      Provider interface, providers, dispatcher and retry worker
+│   │   ├── jobs/               Background scheduler
+│   │   └── routes/             API route modules
+│   └── shared/                 Types and constants shared by server and frontend
+├── web/
+│   ├── index.html
+│   └── src/
+│       ├── main.tsx            React entry
+│       ├── App.tsx             Router and auth guards
+│       ├── index.css           Tailwind and theme tokens
+│       ├── lib/                API client, auth client, utilities
+│       ├── components/ui/      shadcn/ui components
+│       ├── components/         Layout, sidebar, shared widgets
+│       └── pages/              Dashboard, Repositories, Events, Channels, Settings, auth pages
+└── tests/                      bun test suites
+```
