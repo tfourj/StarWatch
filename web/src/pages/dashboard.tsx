@@ -34,6 +34,9 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
 
 function StarsChart({ data }: { data: Dashboard["chart"] }) {
   const total = data.reduce((sum, d) => sum + d.stars, 0);
+  // Size the axis to the largest label so values like 100 or 1,000 are not clipped.
+  const maxLabel = formatNumber(Math.max(4, ...data.map((d) => d.stars)));
+  const axisWidth = 16 + maxLabel.length * 7;
   return (
     <Card>
       <CardHeader>
@@ -45,7 +48,7 @@ function StarsChart({ data }: { data: Dashboard["chart"] }) {
       </CardHeader>
       <CardContent className="h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }} barCategoryGap={2}>
+          <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barCategoryGap={2}>
             <CartesianGrid vertical={false} stroke="var(--border)" />
             <XAxis
               dataKey="date"
@@ -60,7 +63,7 @@ function StarsChart({ data }: { data: Dashboard["chart"] }) {
               allowDecimals={false}
               tickLine={false}
               axisLine={false}
-              width={44}
+              width={axisWidth}
               tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
             />
             <Tooltip cursor={{ fill: "var(--muted)", opacity: 0.6 }} content={<ChartTooltip />} />
