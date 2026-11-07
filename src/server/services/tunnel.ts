@@ -33,10 +33,11 @@ export function parseCloudflaredLine(line: string): CloudflaredLine | null {
   const tag = match?.[1];
   const message = (match ? match[2] : trimmed).replace(/^\|\s*|\s*\|$/g, "").trim();
   const level = tag === "ERR" || tag === "FTL" ? "error" : tag === "WRN" ? "warn" : tag === "DBG" ? "debug" : "info";
-  const event = /Registered tunnel connection/i.test(message)
-    ? "connected"
-    : /Unregistered tunnel connection/i.test(message)
-      ? "disconnected"
+  // Check "Unregistered" first, it contains "registered".
+  const event = /Unregistered tunnel connection/i.test(message)
+    ? "disconnected"
+    : /Registered tunnel connection/i.test(message)
+      ? "connected"
       : null;
   return { level, message, quickUrl: level === "info" ? (message.match(QUICK_URL)?.[0] ?? null) : null, event };
 }
