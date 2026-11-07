@@ -2,11 +2,15 @@ import type { Subprocess } from "bun";
 import { getConfig } from "../config";
 import { logger } from "../logger";
 import { startWebhookListener, stopWebhookListener } from "../webhook-listener";
+import { cloudflaredSupported, ensureLatestBinary, getBinary, type UpdateResult } from "./cloudflared-binary";
 import { syncRepositories } from "./repos";
 import { getTunnelSettings, getWebhookUrl, listUsersWithTokens, updateTunnelSettings } from "./settings";
 
 const log = logger.child("tunnel");
 const RESTART_DELAYS_MS = [5_000, 10_000, 30_000, 60_000];
+const UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+/** Restarts within this window reuse the installed binary instead of asking GitHub again. */
+const MIN_CHECK_GAP_MS = 60 * 60 * 1000;
 const QUICK_URL = /https:\/\/(?!api\.)[a-z0-9-]+\.trycloudflare\.com/;
 
 export type TunnelState = "stopped" | "starting" | "connected" | "error";
@@ -42,18 +46,28 @@ export function parseCloudflaredLine(line: string): CloudflaredLine | null {
   return { level, message, quickUrl: level === "info" ? (message.match(QUICK_URL)?.[0] ?? null) : null, event };
 }
 
-export function cloudflaredBinary(): string | null {
-  return process.env.CLOUDFLARED_PATH?.trim() || Bun.which("cloudflared");
-}
-
 let child: Subprocess<"ignore", "pipe", "pipe"> | null = null;
 let generation = 0;
 let attempt = 0;
 let restartTimer: ReturnType<typeof setTimeout> | null = null;
+let updateTimer: ReturnType<typeof setInterval> | null = null;
+let lastUpdateCheck: Date | null = null;
+let updateError: string | null = null;
 let status: TunnelStatus = { state: "stopped", connections: 0, error: null, since: null };
 
-export function getTunnelStatus(): TunnelStatus & { binaryFound: boolean } {
-  return { ...status, binaryFound: Boolean(cloudflaredBinary()) };
+export function getTunnelStatus() {
+  const binary = getBinary();
+  return {
+    ...status,
+    binary: {
+      supported: cloudflaredSupported(),
+      installed: Boolean(binary),
+      managed: binary?.managed ?? true,
+      version: binary?.version ?? null,
+      lastCheckAt: lastUpdateCheck,
+      updateError,
+    },
+  };
 }
 
 function setStatus(patch: Partial<TunnelStatus>) {
@@ -68,9 +82,26 @@ function resyncIfChanged(previousUrl: string) {
   for (const s of listUsersWithTokens()) void syncRepositories(s.userId).catch(() => undefined);
 }
 
-function fail(error: string) {
+function errorText(err: unknown) {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function scheduleRestart(gen: number) {
+  const delay = RESTART_DELAYS_MS[Math.min(attempt, RESTART_DELAYS_MS.length - 1)];
+  attempt++;
+  log.warn("cloudflared restarting", { error: status.error, retryInSeconds: delay / 1000 });
+  restartTimer = setTimeout(() => {
+    restartTimer = null;
+    if (gen === generation && getTunnelSettings().enabled) void launch();
+  }, delay);
+}
+
+/** Stop with an error. Retries only for problems that can go away on their own, like a failed download. */
+function fail(gen: number, error: string, retry = false) {
+  if (gen !== generation) return;
   log.error("cloudflared not started", { error });
   setStatus({ state: "error", connections: 0, error });
+  if (retry) scheduleRestart(gen);
 }
 
 function handleLine(line: string, gen: number) {
@@ -114,29 +145,58 @@ async function pump(stream: ReadableStream<Uint8Array>, gen: number) {
 function onExit(gen: number, code: number | null) {
   if (gen !== generation) return;
   child = null;
-  const delay = RESTART_DELAYS_MS[Math.min(attempt, RESTART_DELAYS_MS.length - 1)];
-  attempt++;
-  const error = status.error ?? `cloudflared exited with code ${code}`;
-  log.warn("cloudflared exited, restarting", { code, error, retryInSeconds: delay / 1000 });
-  setStatus({ state: "error", connections: 0, error });
-  restartTimer = setTimeout(() => {
-    restartTimer = null;
-    if (gen === generation && getTunnelSettings().enabled) spawnTunnel();
-  }, delay);
+  setStatus({ state: "error", connections: 0, error: status.error ?? `cloudflared exited with code ${code}` });
+  scheduleRestart(gen);
 }
 
-function spawnTunnel() {
+async function checkForUpdate(): Promise<UpdateResult | null> {
+  lastUpdateCheck = new Date();
+  try {
+    const result = await ensureLatestBinary();
+    updateError = null;
+    return result;
+  } catch (err) {
+    updateError = errorText(err);
+    log.warn("cloudflared update check failed", { error: updateError });
+    throw err;
+  }
+}
+
+/** Path of a usable binary. Downloads it when missing and updates it when the last check is old enough. */
+async function prepareBinary(): Promise<string> {
+  const existing = getBinary();
+  const due = !lastUpdateCheck || Date.now() - lastUpdateCheck.getTime() > MIN_CHECK_GAP_MS;
+  if (existing && (!existing.managed || !due)) return existing.path;
+  try {
+    await checkForUpdate();
+  } catch (err) {
+    if (!existing) throw err;
+  }
+  const binary = getBinary();
+  if (!binary) throw new Error("cloudflared could not be installed");
+  return binary.path;
+}
+
+async function launch() {
+  const gen = ++generation;
+  setStatus({ state: "starting", connections: 0, error: null });
+
+  let binary: string;
+  try {
+    binary = await prepareBinary();
+  } catch (err) {
+    return fail(gen, errorText(err), true);
+  }
+  if (gen !== generation) return;
+
   const settings = getTunnelSettings();
-  const binary = cloudflaredBinary();
-  if (!binary) return fail("cloudflared not found. Install it or set CLOUDFLARED_PATH.");
-  if (settings.mode === "token" && !settings.token) return fail("No tunnel token saved");
+  if (settings.mode === "token" && !settings.token) return fail(gen, "No tunnel token saved");
 
   let port: number;
   try {
     port = startWebhookListener();
   } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    return fail(`Could not listen on port ${getConfig().tunnelPort}: ${reason}`);
+    return fail(gen, `Could not listen on port ${getConfig().tunnelPort}: ${errorText(err)}`);
   }
 
   const env: Record<string, string | undefined> = { ...process.env, TUNNEL_TOKEN: undefined };
@@ -149,9 +209,7 @@ function spawnTunnel() {
     args.push("--url", `http://127.0.0.1:${port}`);
   }
 
-  const gen = ++generation;
-  setStatus({ state: "starting", connections: 0, error: null });
-  log.info("starting cloudflared", { mode: settings.mode });
+  log.info("starting cloudflared", { mode: settings.mode, version: getBinary()?.version });
   try {
     const proc = Bun.spawn(args, { env, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
     child = proc;
@@ -159,7 +217,7 @@ function spawnTunnel() {
     void pump(proc.stderr, gen);
     void proc.exited.then((code) => onExit(gen, code));
   } catch (err) {
-    fail(err instanceof Error ? err.message : String(err));
+    fail(gen, errorText(err), true);
   }
 }
 
@@ -173,12 +231,35 @@ function stopProcess() {
   setStatus({ state: "stopped", connections: 0, error: null });
 }
 
+function startUpdateTimer() {
+  if (updateTimer) return;
+  updateTimer = setInterval(() => void updateCloudflared().catch(() => undefined), UPDATE_INTERVAL_MS);
+}
+
+function stopUpdateTimer() {
+  if (updateTimer) clearInterval(updateTimer);
+  updateTimer = null;
+}
+
+/** Check for a newer cloudflared now and restart a running tunnel on it. */
+export async function updateCloudflared(): Promise<UpdateResult | null> {
+  const result = await checkForUpdate();
+  if (result?.updated && getTunnelSettings().enabled) {
+    log.info("restarting cloudflared on the new version", { version: result.version });
+    stopProcess();
+    void launch();
+  }
+  return result;
+}
+
 /** Restart cloudflared to match the stored settings and resync hooks if the webhook URL moved. */
 export function applyTunnelSettings(previousWebhookUrl: string) {
   stopProcess();
   if (getTunnelSettings().enabled) {
-    spawnTunnel();
+    startUpdateTimer();
+    void launch();
   } else {
+    stopUpdateTimer();
     stopWebhookListener();
     log.info("cloudflared stopped");
   }
@@ -186,10 +267,13 @@ export function applyTunnelSettings(previousWebhookUrl: string) {
 }
 
 export function startTunnel() {
-  if (getTunnelSettings().enabled) spawnTunnel();
+  if (!getTunnelSettings().enabled) return;
+  startUpdateTimer();
+  void launch();
 }
 
 export function stopTunnel() {
+  stopUpdateTimer();
   stopProcess();
   stopWebhookListener();
 }
