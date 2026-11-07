@@ -8,6 +8,7 @@ import {
   Menu,
   Monitor,
   Moon,
+  ScrollText,
   Settings,
   Sun,
   type LucideIcon,
@@ -33,11 +34,12 @@ import { authClient } from "@/lib/auth-client";
 import type { CurrentUser } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const NAV: { to: string; label: string; icon: LucideIcon }[] = [
+const NAV: { to: string; label: string; icon: LucideIcon; adminOnly?: boolean }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/repositories", label: "Repositories", icon: BookMarked },
   { to: "/events", label: "Events", icon: Activity },
   { to: "/channels", label: "Channels", icon: Bell },
+  { to: "/logs", label: "Logs", icon: ScrollText, adminOnly: true },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -50,10 +52,10 @@ function Brand() {
   );
 }
 
-function NavItems({ onNavigate }: { onNavigate?: () => void }) {
+function NavItems({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?: () => void }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3 py-2">
-      {NAV.map((item) => (
+      {NAV.filter((item) => isAdmin || !item.adminOnly).map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
@@ -169,7 +171,7 @@ function SidebarBody({ user, onNavigate }: { user: CurrentUser; onNavigate?: () 
   return (
     <>
       <Brand />
-      <NavItems onNavigate={onNavigate} />
+      <NavItems isAdmin={user.role === "admin"} onNavigate={onNavigate} />
       <div className="px-3 pb-2">
         <RepoLink />
       </div>

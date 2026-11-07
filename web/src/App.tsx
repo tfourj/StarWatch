@@ -10,6 +10,7 @@ const DashboardPage = lazy(() => import("@/pages/dashboard").then((m) => ({ defa
 const RepositoriesPage = lazy(() => import("@/pages/repositories").then((m) => ({ default: m.RepositoriesPage })));
 const EventsPage = lazy(() => import("@/pages/events").then((m) => ({ default: m.EventsPage })));
 const ChannelsPage = lazy(() => import("@/pages/channels").then((m) => ({ default: m.ChannelsPage })));
+const LogsPage = lazy(() => import("@/pages/logs").then((m) => ({ default: m.LogsPage })));
 const SettingsPage = lazy(() => import("@/pages/settings").then((m) => ({ default: m.SettingsPage })));
 
 function Splash() {
@@ -53,6 +54,7 @@ export function App() {
         <Route path="repositories" element={<RepositoriesPage />} />
         <Route path="events" element={<EventsPage />} />
         <Route path="channels" element={<ChannelsPage />} />
+        {user.role === "admin" && <Route path="logs" element={<LogsPage />} />}
         <Route path="settings" element={<SettingsPage user={user} />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
