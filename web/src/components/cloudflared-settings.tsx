@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, ExternalLink } from "lucide-react";
+import { Copy, ExternalLink, RefreshCw } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { ErrorNote, Spinner } from "@/components/shared";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { api, errorMessage } from "@/lib/api";
-import type { TunnelMode, TunnelSettings, TunnelState } from "@/lib/types";
+import type { TunnelMode, TunnelSettings, TunnelState, TunnelUpdateResponse } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 
 const ZERO_TRUST_URL = "https://one.dash.cloudflare.com/";
@@ -56,6 +56,16 @@ export function CloudflaredSettings() {
     onError: (err) => toast.error(errorMessage(err)),
   });
 
+  const checkUpdate = useMutation({
+    mutationFn: () => api.post<TunnelUpdateResponse>("/settings/cloudflared/update"),
+    onSuccess: ({ update: result, ...next }) => {
+      queryClient.setQueryData(["settings", "cloudflared"], next);
+      if (!result) return;
+      toast.success(result.updated ? `Updated to ${result.version}` : `${result.version} is the latest version`);
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+
   if (error) return <ErrorNote>{error.message}</ErrorNote>;
   if (isPending || !data) return <Skeleton className="h-64" />;
 
@@ -65,6 +75,7 @@ export function CloudflaredSettings() {
   }
 
   const badge = STATE_BADGE[data.status.state];
+  const binary = data.status.binary;
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -191,8 +202,36 @@ export function CloudflaredSettings() {
               </Button>
             </div>
           )}
-          {!data.status.binaryFound && (
-            <ErrorNote>cloudflared is not installed. Use the Docker image or set CLOUDFLARED_PATH.</ErrorNote>
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-muted-foreground">cloudflared</span>
+            <div className="flex items-center gap-2">
+              <span className="tabular-nums">
+                {binary.version ?? (binary.installed ? "Unknown version" : "Downloads on start")}
+              </span>
+              {binary.managed && binary.supported && (
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  aria-label="Check for cloudflared updates"
+                  disabled={checkUpdate.isPending}
+                  onClick={() => checkUpdate.mutate()}
+                >
+                  {checkUpdate.isPending ? <Spinner /> : <RefreshCw />}
+                </Button>
+              )}
+            </div>
+          </div>
+          {binary.managed && binary.lastCheckAt && (
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Last update check</span>
+              <span>{timeAgo(binary.lastCheckAt)}</span>
+            </div>
+          )}
+          {!binary.supported && (
+            <ErrorNote>No cloudflared build for this platform. Set CLOUDFLARED_PATH.</ErrorNote>
+          )}
+          {binary.updateError && binary.updateError !== data.status.error && (
+            <ErrorNote>{binary.updateError}</ErrorNote>
           )}
           {data.status.error && <ErrorNote>{data.status.error}</ErrorNote>}
         </CardContent>

@@ -241,9 +241,18 @@ export interface TunnelSettings {
     connections: number;
     error: string | null;
     since: string | null;
-    binaryFound: boolean;
+    binary: {
+      supported: boolean;
+      installed: boolean;
+      managed: boolean;
+      version: string | null;
+      lastCheckAt: string | null;
+      updateError: string | null;
+    };
   };
 }
+
+export type TunnelUpdateResponse = TunnelSettings & { update: { version: string; updated: boolean } | null };
 
 export interface ManagedUser {
   id: string;
