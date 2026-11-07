@@ -1,6 +1,4 @@
-type Level = "debug" | "info" | "warn" | "error";
-
-const LEVELS: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
+import { LOG_LEVELS as LEVELS, logBuffer, type LogLevel as Level } from "./log-buffer";
 
 function threshold(): number {
   const env = (process.env.LOG_LEVEL ?? "info").toLowerCase() as Level;
@@ -24,6 +22,10 @@ function write(level: Level, scope: string | undefined, msg: string, fields?: Re
   const line = JSON.stringify(entry);
   if (level === "error" || level === "warn") process.stderr.write(line + "\n");
   else process.stdout.write(line + "\n");
+
+  // Keep a detached copy for the Logs page, split into the fixed parts and the extra fields.
+  const { time, level: _level, msg: _msg, scope: _scope, ...rest } = JSON.parse(line) as Record<string, unknown>;
+  logBuffer.push({ time: time as string, level, scope: scope ?? null, msg, fields: rest });
 }
 
 export interface Logger {
