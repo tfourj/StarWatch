@@ -4,6 +4,7 @@ import { CheckCircle2, Copy, ExternalLink, KeyRound, Plus, RefreshCw, Trash2, Us
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { CloudflaredSettings } from "@/components/cloudflared-settings";
 import { ConfirmDialog, ErrorNote, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -317,7 +318,10 @@ function MonitoringTab({ settings }: { settings: Settings }) {
               <Copy />
             </Button>
           </div>
-          {settings.webhook.canEdit && (
+          {settings.webhook.tunnel && (
+            <p className="text-xs text-muted-foreground">Set by the Cloudflared tunnel.</p>
+          )}
+          {settings.webhook.canEdit && !settings.webhook.tunnel && (
             <form
               className="flex flex-col gap-2"
               onSubmit={(e) => {
@@ -799,6 +803,7 @@ export function SettingsPage({ user }: { user: CurrentUser }) {
           <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
+          {user.role === "admin" && <TabsTrigger value="cloudflared">Cloudflared</TabsTrigger>}
           {user.role === "admin" && <TabsTrigger value="users">Users</TabsTrigger>}
         </TabsList>
         {isPending || !data ? (
@@ -817,6 +822,11 @@ export function SettingsPage({ user }: { user: CurrentUser }) {
             <TabsContent value="account">
               <AccountTab user={user} />
             </TabsContent>
+            {user.role === "admin" && (
+              <TabsContent value="cloudflared">
+                <CloudflaredSettings />
+              </TabsContent>
+            )}
             {user.role === "admin" && (
               <TabsContent value="users">
                 <UsersTab />
