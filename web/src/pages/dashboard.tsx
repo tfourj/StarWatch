@@ -209,7 +209,7 @@ export function DashboardPage() {
 
   return (
     <>
-      <PageHeader title="Dashboard" description="Star activity across your GitHub repositories." />
+      <PageHeader title="Dashboard" />
       {error && <ErrorNote>{error.message}</ErrorNote>}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

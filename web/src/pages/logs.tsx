@@ -171,7 +171,6 @@ export function LogsPage() {
     <>
       <PageHeader
         title="Logs"
-        description="Recent server log lines, newest first. The full log is in docker logs."
         actions={
           <>
             <Button variant="outline" onClick={() => setLive((l) => !l)}>

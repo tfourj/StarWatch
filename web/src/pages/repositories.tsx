@@ -451,11 +451,7 @@ export function RepositoriesPage() {
     <>
       <PageHeader
         title="Repositories"
-        description={
-          data?.lastSyncAt
-            ? `Monitored repositories · last synced ${timeAgo(data.lastSyncAt)}`
-            : "Monitored repositories."
-        }
+        description={data?.lastSyncAt ? `Last synced ${timeAgo(data.lastSyncAt)}` : undefined}
         actions={headerActions}
       />
 
