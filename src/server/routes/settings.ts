@@ -23,7 +23,7 @@ import {
   updateUserSettings,
   type TunnelSettings,
 } from "../services/settings";
-import { applyTunnelSettings, getTunnelStatus } from "../services/tunnel";
+import { applyTunnelSettings, getTunnelStatus, updateCloudflared } from "../services/tunnel";
 
 const log = logger.child("settings");
 
@@ -197,6 +197,15 @@ export const settingsRoutes = new Hono<AuthedEnv>()
     log.info("cloudflared settings saved", { enabled: next.enabled, mode: next.mode, hostname: next.hostname });
     applyTunnelSettings(previous);
     return c.json(tunnelView());
+  })
+  .post("/cloudflared/update", requireAdmin, async (c) => {
+    if (process.env.CLOUDFLARED_PATH?.trim()) throw new HttpError(400, "cloudflared is managed through CLOUDFLARED_PATH");
+    try {
+      const result = await updateCloudflared();
+      return c.json({ ...tunnelView(), update: result });
+    } catch (err) {
+      throw new HttpError(502, err instanceof Error ? err.message : String(err));
+    }
   })
   .patch("/app", requireAdmin, async (c) => {
     const user = c.get("user");
