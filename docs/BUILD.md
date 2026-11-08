@@ -25,7 +25,6 @@ requests from forks are built but not published.
 | `v1.2.3`, `v1.2`, `v1`     | Git tags like `v1.2.3`                        |
 | `v1.3.0-rc.1`              | Pre-release tags (exact tag only)            |
 | `main`                     | Every push to `main` (unreleased)            |
-| `sha-<commit>`             | Every push                                   |
 | `preview`                  | The newest pull request build                |
 | `pr-<number>`              | Every push to that pull request              |
 
