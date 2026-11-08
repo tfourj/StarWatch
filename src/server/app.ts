@@ -7,6 +7,7 @@ import { countUsers } from "./auth/registration";
 import { getConfig } from "./config";
 import { getDb } from "./db/client";
 import { HttpError } from "./lib/http";
+import { webDir } from "./lib/web-dir";
 import { logger } from "./logger";
 import { channelRoutes } from "./routes/channels";
 import { dashboard } from "./routes/dashboard";
@@ -21,10 +22,6 @@ import { users } from "./routes/users";
 import { webhooks } from "./routes/webhooks";
 
 const log = logger.child("http");
-
-function webDir() {
-  return path.resolve(process.env.WEB_DIR ?? "dist/web");
-}
 
 /** Serve the built SPA. Unknown paths get index.html; first-run and registration redirects happen here too. */
 function staticHandler() {
