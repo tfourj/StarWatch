@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { listLinks, toHtml, toPlainWithUrls, trailingLink } from "../src/server/notifications/links";
+import { buildMail } from "../src/server/notifications/providers/email";
 import { gotify } from "../src/server/notifications/providers/gotify";
 import { ntfy } from "../src/server/notifications/providers/ntfy";
 import { pushover } from "../src/server/notifications/providers/pushover";
@@ -130,5 +131,33 @@ describe("other providers", () => {
     const json = sentJson();
     expect(json.message).toBe("octocat starred me/project.");
     expect(json.message_markdown).toBe(linked);
+  });
+});
+
+describe("email", () => {
+  const config = { from: "stars@example.com", to: "me@example.com" };
+  const logo = "/web/icon-192.png";
+
+  test("uses the sender name with the from address", () => {
+    expect(buildMail({ ...config, fromName: "StarWatch" }, message("plain"), logo).from).toEqual({
+      name: "StarWatch",
+      address: "stars@example.com",
+    });
+    expect(buildMail({ ...config, fromName: " " }, message("plain"), logo).from).toBe("stars@example.com");
+  });
+
+  test("embeds the logo by default", () => {
+    const mail = buildMail(config, message("plain"), logo);
+    expect(mail.html).toContain('src="cid:starwatch-logo"');
+    expect(mail.attachments).toEqual([{ filename: "starwatch.png", path: logo, cid: "starwatch-logo" }]);
+  });
+
+  test("leaves the logo out when turned off or missing", () => {
+    const off = buildMail({ ...config, showLogo: false }, message("plain"), logo);
+    const missing = buildMail(config, message("plain"), null);
+    for (const mail of [off, missing]) {
+      expect(mail.html).not.toContain("cid:");
+      expect(mail.attachments).toBeUndefined();
+    }
   });
 });

@@ -100,6 +100,10 @@ The **Main link** option on a channel picks the repository, the stargazer or not
 or Pushover notification is tapped and linked from the Discord embed title. On Telegram, Slack, Email and Gotify it is
 also added below the message when the template has no links of its own.
 
+Email channels have a **Sender name**, shown in the inbox instead of the bare address, and add the StarWatch logo at
+the top of each message unless **Show StarWatch logo** is off. The avatar next to the sender is picked by the mail
+client (for example a Google account photo or a BIMI record on the domain), so StarWatch cannot set it.
+
 Failed deliveries are retried up to 6 times with exponential backoff (30s, 1m, 2m, 4m, 8m). Every attempt is logged
 and visible in **Events**, where you can also retry by hand.
 
