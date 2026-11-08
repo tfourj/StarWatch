@@ -24,6 +24,14 @@ import { webhooks } from "./routes/webhooks";
 
 const log = logger.child("http");
 
+/** Checked by the browser on every visit, so a new release reaches installed apps right away. */
+const NO_CACHE_FILES = new Set(["/sw.js", "/site.webmanifest"]);
+
+function cacheControl(pathname: string) {
+  if (pathname.startsWith("/assets/")) return "public, max-age=31536000, immutable";
+  return NO_CACHE_FILES.has(pathname) ? "no-cache" : "public, max-age=300";
+}
+
 /** Serve the built SPA. Unknown paths get index.html; first-run and registration redirects happen here too. */
 function staticHandler() {
   const root = webDir();
@@ -34,10 +42,7 @@ function staticHandler() {
     const filePath = path.normalize(path.join(root, pathname));
 
     if (filePath.startsWith(root + path.sep) && existsSync(filePath) && statSync(filePath).isFile()) {
-      const immutable = pathname.startsWith("/assets/");
-      return new Response(Bun.file(filePath), {
-        headers: { "Cache-Control": immutable ? "public, max-age=31536000, immutable" : "public, max-age=300" },
-      });
+      return new Response(Bun.file(filePath), { headers: { "Cache-Control": cacheControl(pathname) } });
     }
 
     if (path.extname(pathname)) return c.text("Not found", 404);

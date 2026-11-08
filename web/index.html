@@ -6,12 +6,17 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="StarWatch" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>StarWatch</title>
     <script>
       try {
         const t = localStorage.getItem("starwatch-theme") || "system";
         const dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
         document.documentElement.classList.toggle("dark", dark);
+        if (dark) document.querySelector('meta[name="theme-color"]').content = "#09090b";
       } catch {}
     </script>
   </head>

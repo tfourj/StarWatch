@@ -5,8 +5,11 @@ import { BrowserRouter } from "react-router";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { registerServiceWorker } from "@/lib/service-worker";
 import { App } from "./App";
 import "./index.css";
+
+registerServiceWorker();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: true, retry: 1 } },

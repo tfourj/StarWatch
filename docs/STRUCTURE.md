@@ -14,7 +14,7 @@ StarWatch/
 ├── drizzle.config.ts           drizzle-kit config
 ├── scripts/screenshots.sh      Regenerates README screenshots from demo data (Docker only)
 ├── scripts/screenshots/        Demo data seed and headless Chrome capture
-├── vite.config.ts              Frontend build and dev proxy
+├── vite.config.ts              Frontend build, service worker build and dev proxy
 ├── docs/
 │   ├── STRUCTURE.md            This file
 │   ├── DATABASE.md             Database schema
@@ -43,12 +43,13 @@ StarWatch/
 │   └── shared/                 Code shared by server and frontend (templates, channels, frequency, demo data)
 ├── web/
 │   ├── index.html
+│   ├── sw.js                   Service worker template, built into /sw.js with the files to precache
 │   ├── public/                 Favicon, app icons, web manifest
 │   └── src/
 │       ├── main.tsx            React entry
 │       ├── App.tsx             Router and auth guards
 │       ├── index.css           Tailwind and theme tokens
-│       ├── lib/                API client, auth client, response types, utilities
+│       ├── lib/                API client, auth client, response types, service worker registration, utilities
 │       ├── hooks/              Session and setup-status queries
 │       ├── components/ui/      shadcn/ui components
 │       ├── demo/               In-browser fake API for the static demo build
