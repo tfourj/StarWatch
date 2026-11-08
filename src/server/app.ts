@@ -14,6 +14,7 @@ import { events } from "./routes/events";
 import { health } from "./routes/health";
 import { logs } from "./routes/logs";
 import { repos } from "./routes/repos";
+import { security } from "./routes/security";
 import { settingsRoutes } from "./routes/settings";
 import { setup } from "./routes/setup";
 import { users } from "./routes/users";
@@ -98,6 +99,7 @@ export function createApp() {
   authed.route("/events", events);
   authed.route("/channels", channelRoutes);
   authed.route("/settings", settingsRoutes);
+  authed.route("/security", security);
   authed.use("/users/*", requireAdmin);
   authed.use("/users", requireAdmin);
   authed.route("/users", users);

@@ -17,7 +17,7 @@ import { logger } from "../logger";
 import { decryptChannelConfig } from "../services/channels";
 import { getUserTemplates } from "../services/settings";
 import { getProvider } from "./providers";
-import type { NotificationMessage } from "./types";
+import type { NotificationMessage, StarMessage } from "./types";
 
 const log = logger.child("delivery");
 
@@ -52,11 +52,19 @@ export function buildMessage(
   event: Pick<StarEvent, "action" | "actorLogin" | "actorUrl" | "actorAvatarUrl" | "starCount" | "occurredAt">,
   repo: Pick<Repository, "fullName" | "htmlUrl">,
   isTest = false,
-): NotificationMessage {
+): StarMessage {
   const templates = mergeTemplates(getUserTemplates(channel.userId), channel.templates);
   const vars = buildVars(event, repo, getConfig().timezone);
   const { title, body } = renderMessage(event.action, templates, vars);
-  return { title: isTest ? `[Test] ${title}` : title, body, action: event.action, vars, occurredAt: event.occurredAt, isTest };
+  return {
+    kind: "star",
+    title: isTest ? `[Test] ${title}` : title,
+    body,
+    action: event.action,
+    vars,
+    occurredAt: event.occurredAt,
+    isTest,
+  };
 }
 
 export async function sendToChannel(channel: Channel, message: NotificationMessage) {

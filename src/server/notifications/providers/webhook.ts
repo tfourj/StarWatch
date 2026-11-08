@@ -17,21 +17,38 @@ export const webhook: NotificationProvider = {
   type: "webhook",
   async send(config, msg) {
     const v = msg.vars;
+    const common = {
+      test: msg.isTest,
+      title: msg.title,
+      message: stripLinks(msg.body),
+      message_markdown: msg.body,
+      time: msg.occurredAt.toISOString(),
+    };
+    const json =
+      msg.kind === "login"
+        ? {
+            event: "login",
+            ...common,
+            account: { name: msg.login.name, email: msg.login.email },
+            login: {
+              method: msg.login.method,
+              ip: msg.login.ip,
+              device: msg.login.device,
+              user_agent: msg.login.userAgent,
+            },
+          }
+        : {
+            event: "star",
+            action: msg.action,
+            ...common,
+            repository: { full_name: v.repo, url: v.repo_url, stars: Number(v.stars) },
+            user: { login: v.user, url: v.user_url, avatar_url: v.avatar },
+            vars: v,
+          };
     await sendHttp(requireString(config, "url"), {
       method: optionalString(config, "method") === "PUT" ? "PUT" : "POST",
       headers: parseHeaders(optionalString(config, "headers")),
-      json: {
-        event: "star",
-        action: msg.action,
-        test: msg.isTest,
-        title: msg.title,
-        message: stripLinks(msg.body),
-        message_markdown: msg.body,
-        repository: { full_name: v.repo, url: v.repo_url, stars: Number(v.stars) },
-        user: { login: v.user, url: v.user_url, avatar_url: v.avatar },
-        time: msg.occurredAt.toISOString(),
-        vars: v,
-      },
+      json,
     });
   },
 };

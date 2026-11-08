@@ -48,6 +48,7 @@ interface State {
     autoMonitorNew: boolean;
     templates: Partial<MessageTemplates> | null;
   };
+  loginAlertChannelIds: number[];
   logs: LogBuffer;
 }
 
@@ -70,6 +71,7 @@ export function resetDemo(now = Date.now()) {
       },
     ],
     settings: { pollingIntervalMinutes: 15, autoMonitorNew: false, templates: null },
+    loginAlertChannelIds: [],
     logs: buildLogs(data, now),
   };
   return state;
@@ -651,6 +653,23 @@ function updateSettings(body: Body) {
 
 /* ---------------------------------- Users --------------------------------- */
 
+function securityView() {
+  const ids = new Set(getState().data.channels.map((c) => c.id));
+  return {
+    twoFactorEnabled: false,
+    hasPassword: true,
+    loginAlerts: { channelIds: getState().loginAlertChannelIds.filter((id) => ids.has(id)) },
+  };
+}
+
+function setLoginAlerts(body: Body) {
+  if (!Array.isArray(body.channelIds)) badRequest("channelIds must be an array");
+  const ids = new Set(getState().data.channels.map((c) => c.id));
+  const wanted = new Set((body.channelIds as unknown[]).map(Number));
+  getState().loginAlertChannelIds = [...wanted].filter((id) => ids.has(id));
+  return securityView();
+}
+
 function userView(u: DemoUser) {
   return {
     id: u.id,
@@ -658,6 +677,7 @@ function userView(u: DemoUser) {
     email: u.email,
     role: u.role,
     image: null,
+    twoFactorEnabled: false,
     createdAt: u.createdAt,
     isSelf: u.id === DEMO_USER_ID,
   };
@@ -771,6 +791,9 @@ const ROUTES: [string, RegExp, Handler][] = [
   ["POST", /^\/settings\/github-token\/check$/, () => unavailable("Checking the GitHub token")],
   ["DELETE", /^\/settings\/github-token$/, () => unavailable("Removing the GitHub token")],
   ["PATCH", /^\/settings\/app$/, () => unavailable("Changing the webhook URL")],
+  ["GET", /^\/security$/, () => securityView()],
+  ["PUT", /^\/security\/login-alerts$/, (_, __, body) => setLoginAlerts(body)],
+  ["POST", /^\/security\/login-alerts\/test$/, () => unavailable("Sending test login alerts")],
   [
     "GET",
     /^\/settings\/cloudflared$/,

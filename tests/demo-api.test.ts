@@ -82,6 +82,14 @@ describe("demo api", () => {
     await expect(send("PUT", "/settings/github-token", { token: "x" })).rejects.toThrow("not available in the demo");
   });
 
+  test("login alert channels can be picked but not tested", async () => {
+    expect(await get("/security")).toMatchObject({ twoFactorEnabled: false, loginAlerts: { channelIds: [] } });
+    const { channels } = await get("/channels");
+    const saved = await send("PUT", "/security/login-alerts", { channelIds: [channels[0].id, 9999] });
+    expect(saved.loginAlerts.channelIds).toEqual([channels[0].id]);
+    await expect(send("POST", "/security/login-alerts/test")).rejects.toThrow("not available in the demo");
+  });
+
   test("logs support filters", async () => {
     const warnings = await get("/logs?level=warn");
     expect(warnings.entries.length).toBeGreaterThan(0);

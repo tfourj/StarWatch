@@ -21,6 +21,7 @@ export const user = sqliteTable("user", {
   emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
   image: text("image"),
   role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
+  twoFactorEnabled: integer("two_factor_enabled", { mode: "boolean" }).notNull().default(false),
   ...timestamps,
 });
 
@@ -69,6 +70,23 @@ export const verification = sqliteTable("verification", {
   ...timestamps,
 });
 
+export const twoFactor = sqliteTable(
+  "two_factor",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Encrypted by Better Auth with BETTER_AUTH_SECRET. */
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    verified: integer("verified", { mode: "boolean" }).notNull().default(true),
+    failedVerificationCount: integer("failed_verification_count").notNull().default(0),
+    lockedUntil: integer("locked_until", { mode: "timestamp_ms" }),
+  },
+  (t) => [index("two_factor_user_idx").on(t.userId)],
+);
+
 /* ------------------------------- Settings ------------------------------ */
 
 export const appSettings = sqliteTable("app_settings", {
@@ -89,6 +107,8 @@ export const userSettings = sqliteTable("user_settings", {
   pollingIntervalMinutes: integer("polling_interval_minutes").notNull().default(15),
   autoMonitorNew: integer("auto_monitor_new", { mode: "boolean" }).notNull().default(false),
   templates: text("templates", { mode: "json" }).$type<Record<string, string> | null>(),
+  /** Channels that get a message on every sign-in, null when off. */
+  loginAlertChannels: text("login_alert_channels", { mode: "json" }).$type<number[] | null>(),
   lastSyncAt: integer("last_sync_at", { mode: "timestamp_ms" }),
   lastSyncError: text("last_sync_error"),
   lastPollAt: integer("last_poll_at", { mode: "timestamp_ms" }),

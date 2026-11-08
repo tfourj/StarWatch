@@ -103,6 +103,17 @@ also added below the message when the template has no links of its own.
 Failed deliveries are retried up to 6 times with exponential backoff (30s, 1m, 2m, 4m, 8m). Every attempt is logged
 and visible in **Events**, where you can also retry by hand.
 
+## Account security
+
+**Settings → Security** has two options per account:
+
+- **Two-factor authentication:** scan the QR code with an authenticator app and enter a code to turn it on. Save the
+  10 backup codes it shows; each works once. Password sign-ins then ask for a code, and **Trust this device** skips it
+  for 30 days. GitHub sign-ins do not ask for a code. Accounts without a password cannot turn it on. If a user loses
+  their codes, an admin can turn it off in **Settings → Users**.
+- **Login alerts:** pick one or more existing channels. Every sign-in sends a message with the method, device, IP
+  address and time. Disabled channels are skipped. **Send test** sends a sample to the selected channels.
+
 ## Cloudflare Tunnel
 
 StarWatch can run `cloudflared` itself, so GitHub reaches the webhook without a reverse proxy or open port. It is off

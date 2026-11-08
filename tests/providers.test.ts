@@ -22,7 +22,7 @@ const vars = {
 const linked = "[octocat](https://github.com/octocat) starred [me/project](https://github.com/me/project).";
 
 function message(body: string): NotificationMessage {
-  return { title: "New star", body, action: "created", vars, occurredAt: new Date(), isTest: false };
+  return { kind: "star", title: "New star", body, action: "created", vars, occurredAt: new Date(), isTest: false };
 }
 
 let requests: { url: string; body: string }[] = [];

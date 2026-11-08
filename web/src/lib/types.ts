@@ -226,6 +226,16 @@ export interface Settings {
   server: { timezone: string; allowRegistration: boolean };
 }
 
+export interface SecurityStatus {
+  twoFactorEnabled: boolean;
+  hasPassword: boolean;
+  loginAlerts: { channelIds: number[] };
+}
+
+export interface LoginAlertTestResult {
+  results: { channelId: number; name: string; ok: boolean; error: string | null }[];
+}
+
 export type TunnelMode = "token" | "quick";
 export type TunnelState = "stopped" | "starting" | "connected" | "error";
 
@@ -260,6 +270,7 @@ export interface ManagedUser {
   email: string;
   role: Role;
   image: string | null;
+  twoFactorEnabled: boolean;
   createdAt: string;
   isSelf: boolean;
 }

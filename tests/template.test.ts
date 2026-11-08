@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { DEFAULT_TEMPLATES, formatLinks, hasLinks, parseLinks, stripLinks } from "../src/shared/templates";
-import { mergeTemplates, renderMessage, renderTemplate } from "../src/server/lib/template";
+import { formatEventTime, mergeTemplates, renderMessage, renderTemplate } from "../src/server/lib/template";
 import { buildVars } from "../src/server/notifications/worker";
 
 const vars = {
@@ -105,5 +105,18 @@ describe("message templates", () => {
     expect(v.user_url).toBe("https://github.com/octocat");
     expect(v.stars).toBe("9");
     expect(v.time).toContain("2026");
+  });
+});
+
+describe("formatEventTime", () => {
+  const at = new Date(Date.UTC(2026, 10, 7, 19, 0));
+
+  test("shows date, 24-hour time and zone in the server timezone", () => {
+    expect(formatEventTime(at, "UTC")).toBe("7 Nov 2026, 19:00 UTC");
+    expect(formatEventTime(at, "Europe/Ljubljana")).toBe("7 Nov 2026, 20:00 CET");
+  });
+
+  test("falls back to ISO for an unknown timezone", () => {
+    expect(formatEventTime(at, "Not/AZone")).toBe("2026-11-07T19:00:00.000Z");
   });
 });

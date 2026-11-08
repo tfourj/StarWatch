@@ -21,14 +21,25 @@ export function renderMessage(action: "created" | "deleted", templates: MessageT
   return { title: stripLinks(renderTemplate(title, vars)), body: renderTemplate(body, vars) };
 }
 
+/**
+ * "7 Nov 2026, 19:00 UTC" in the given timezone. Built from parts because dateStyle cannot be combined with
+ * timeZoneName, and engines disagree on the separator between date and time.
+ */
 export function formatEventTime(date: Date, timeZone: string): string {
   try {
-    return new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
       timeZone,
       timeZoneName: "short",
-    }).format(date);
+    }).formatToParts(date);
+    const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
+    const day = `${get("day")} ${get("month")} ${get("year")}`;
+    return `${day}, ${get("hour")}:${get("minute")} ${get("timeZoneName")}`.trim();
   } catch {
     return date.toISOString();
   }
