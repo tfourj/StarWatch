@@ -23,14 +23,22 @@ export function buildMail(config: ChannelConfig, msg: NotificationMessage, logo:
   const v = msg.vars;
   const trailing = trailingLink(config, msg);
   const footer = trailing
-    ? `<p><a href="${escapeHtml(trailing.url)}">${escapeHtml(trailing.label)}</a></p>`
+    ? `<p style="margin:12px 0 0"><a href="${escapeHtml(trailing.url)}">${escapeHtml(trailing.label)}</a></p>`
     : "";
   const header = showLogo
-    ? `<img src="cid:${LOGO_CID}" width="40" height="40" alt="StarWatch" style="display:block;margin-bottom:16px" />`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:20px"><tr>` +
+      `<td style="padding-right:8px;vertical-align:middle">` +
+      `<img src="cid:${LOGO_CID}" width="24" height="24" alt="" style="display:block;border-radius:6px" /></td>` +
+      `<td style="vertical-align:middle;font-size:14px;font-weight:600;color:#555">StarWatch</td>` +
+      `</tr></table>`
     : "";
   const avatar = msg.kind === "star" && v.avatar
-    ? `<img src="${escapeHtml(v.avatar)}" width="48" height="48" style="border-radius:50%" />`
+    ? `<td style="padding-right:16px;vertical-align:top;width:48px">` +
+      `<img src="${escapeHtml(v.avatar)}" width="48" height="48" alt="" style="display:block;border-radius:50%" /></td>`
     : "";
+  const content =
+    `<td style="vertical-align:top"><h2 style="margin:0 0 8px;font-size:20px">${escapeHtml(msg.title)}</h2>` +
+    `<p style="margin:0">${toHtml(msg.body).replace(/\n/g, "<br>")}</p>${footer}</td>`;
 
   return {
     from: name ? { name, address } : address,
@@ -38,8 +46,8 @@ export function buildMail(config: ChannelConfig, msg: NotificationMessage, logo:
     subject: msg.title,
     text: toPlainWithUrls(msg.body) + (trailing ? `\n\n${trailing.url}` : ""),
     html:
-      `<div style="font-family:sans-serif">${header}${avatar}<h2>${escapeHtml(msg.title)}</h2>` +
-      `<p>${toHtml(msg.body).replace(/\n/g, "<br>")}</p>${footer}</div>`,
+      `<div style="font-family:sans-serif">${header}` +
+      `<table role="presentation" cellpadding="0" cellspacing="0"><tr>${avatar}${content}</tr></table></div>`,
     attachments: showLogo ? [{ filename: "starwatch.png", path: logo, cid: LOGO_CID }] : undefined,
   };
 }
