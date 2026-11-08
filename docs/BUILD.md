@@ -28,6 +28,8 @@ requests from forks are built but not published.
 | `preview`                  | The newest pull request build                |
 | `pr-<number>`              | Every push to that pull request              |
 
+The version label in the sidebar shows the version for stable releases and the short commit for every other build.
+
 To release, bump `version` in `package.json`, add the release to `CHANGELOG.md`, commit, then tag and push:
 
 ```bash
@@ -70,7 +72,8 @@ To host it on Cloudflare Pages, create a Pages project from the GitHub repositor
 | Build output directory | `dist/demo`                                         |
 | Root directory         | `/`                                                 |
 
-Pages then redeploys on every push. Set `BUN_VERSION` in the project's environment variables to pin a Bun version.
+Pages then redeploys on every push and the version label shows the deployed commit. Set `BUN_VERSION` in the
+project's environment variables to pin a Bun version.
 The build includes a `_redirects` file so routes like `/events` work on reload. Any other static host works too.
 
 Run it locally with `bun run dev:demo`.
