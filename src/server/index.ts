@@ -3,8 +3,8 @@ import { getConfig } from "./config";
 import { initDb, runMigrations } from "./db/client";
 import { createApp } from "./app";
 import { startScheduler, stopScheduler } from "./jobs/scheduler";
+import { COMMIT, VERSION } from "./lib/build-info";
 import { logger } from "./logger";
-import { VERSION } from "./routes/health";
 import { getWebhookSecret, getWebhookUrl } from "./services/settings";
 import { startTunnel, stopTunnel } from "./services/tunnel";
 
@@ -24,6 +24,7 @@ const server = Bun.serve({
 
 logger.info("StarWatch started", {
   version: VERSION,
+  commit: COMMIT,
   port: server.port,
   baseUrl: config.baseUrl,
   webhookUrl: getWebhookUrl(),

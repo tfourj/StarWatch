@@ -34,7 +34,7 @@ StarWatch/
 │   │   ├── webhook-listener.ts Loopback webhook-only server for the Cloudflare tunnel
 │   │   ├── db/                 Drizzle client, schema and migrator
 │   │   ├── auth/               Better Auth and two-factor setup, login alert hook, registration, sessions
-│   │   ├── lib/                Encryption, template rendering, small helpers
+│   │   ├── lib/                Encryption, template rendering, build info, small helpers
 │   │   ├── github/             GitHub REST client, rate limits, signatures, stargazer diffing, hooks
 │   │   ├── services/           Settings, repo sync, star events, polling, backfill, login alerts, cloudflared tunnel
 │   │   ├── notifications/      Provider interface, providers, link formatting, dispatcher and retry worker
