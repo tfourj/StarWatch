@@ -25,6 +25,7 @@
 - Dashboard with stats, chart and event log
 - Two-factor authentication and login alerts on your channels
 - Dark and light mode, multiple users
+- Installable as an app (PWA)
 
 ## Screenshots
 
