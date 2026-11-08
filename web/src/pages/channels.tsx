@@ -370,7 +370,7 @@ function ChannelDialog({
             <summary className="cursor-pointer text-sm font-medium">Custom message templates</summary>
             <p className="mt-2 text-xs text-muted-foreground">
               Leave empty to use the templates from Settings. Variables:{" "}
-              {TEMPLATE_VARIABLES.map((v) => `{${v.name}}`).join(" ")}
+              {TEMPLATE_VARIABLES.map((v) => `{${v.name}}`).join(" ")}. Links: <code>[text](url)</code>.
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {TEMPLATE_FIELDS.map((t) => (

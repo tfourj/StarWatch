@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { renderTemplate, TEMPLATE_VARIABLES, type MessageTemplates } from "@shared/templates";
+import { parseLinks, renderTemplate, stripLinks, TEMPLATE_VARIABLES, type MessageTemplates } from "@shared/templates";
 import { CheckCircle2, Copy, ExternalLink, KeyRound, Plus, RefreshCw, Trash2, UserCog } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
@@ -372,6 +372,28 @@ const TEMPLATE_FIELDS: { key: keyof MessageTemplates; label: string; unstar?: bo
   { key: "unstarBody", label: "Unstar message", unstar: true },
 ];
 
+function TemplatePreview({ text }: { text: string }) {
+  return (
+    <p className="rounded bg-muted px-2 py-1.5 text-xs text-muted-foreground">
+      {parseLinks(text).map((s, i) =>
+        s.url ? (
+          <a
+            key={i}
+            href={s.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-foreground underline underline-offset-2"
+          >
+            {s.text}
+          </a>
+        ) : (
+          <span key={i}>{s.text}</span>
+        ),
+      )}
+    </p>
+  );
+}
+
 function TemplatesTab({ settings }: { settings: Settings }) {
   const save = useSaveSettings();
   const [templates, setTemplates] = useState<MessageTemplates>(settings.templates);
@@ -392,7 +414,7 @@ function TemplatesTab({ settings }: { settings: Settings }) {
         <CardTitle>Message templates</CardTitle>
         <CardDescription>
           Defaults for every channel. A channel can override them. Use <code>{"{{"}</code> and <code>{"}}"}</code> for
-          literal braces.
+          literal braces. Write <code>[text](url)</code> for a link, for example <code>{"[{user}]({user_url})"}</code>.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
@@ -406,6 +428,8 @@ function TemplatesTab({ settings }: { settings: Settings }) {
         <div className="grid gap-5 md:grid-cols-2">
           {TEMPLATE_FIELDS.map((f) => {
             const vars = f.unstar ? { ...SAMPLE_VARS, action: "unstarred", stars: "127" } : SAMPLE_VARS;
+            const rendered = renderTemplate(templates[f.key] || settings.defaultTemplates[f.key], vars);
+            const isTitle = f.key.endsWith("Title");
             return (
               <div key={f.key} className="grid gap-2">
                 <Label htmlFor={`t-${f.key}`}>{f.label}</Label>
@@ -415,9 +439,7 @@ function TemplatesTab({ settings }: { settings: Settings }) {
                   value={templates[f.key]}
                   onChange={(e) => setTemplates((t) => ({ ...t, [f.key]: e.target.value }))}
                 />
-                <p className="rounded bg-muted px-2 py-1.5 text-xs text-muted-foreground">
-                  {renderTemplate(templates[f.key] || settings.defaultTemplates[f.key], vars)}
-                </p>
+                <TemplatePreview text={isTitle ? stripLinks(rendered) : rendered} />
               </div>
             );
           })}
