@@ -1,4 +1,5 @@
-import { DEFAULT_TEMPLATES, renderTemplate, type MessageTemplates, type TemplateVars } from "../../shared/templates";
+import { DEFAULT_TEMPLATES, renderTemplate, stripLinks } from "../../shared/templates";
+import type { MessageTemplates, TemplateVars } from "../../shared/templates";
 
 export { renderTemplate };
 
@@ -17,7 +18,7 @@ export function mergeTemplates(...layers: (Partial<MessageTemplates> | null | un
 export function renderMessage(action: "created" | "deleted", templates: MessageTemplates, vars: TemplateVars) {
   const title = action === "created" ? templates.starTitle : templates.unstarTitle;
   const body = action === "created" ? templates.starBody : templates.unstarBody;
-  return { title: renderTemplate(title, vars), body: renderTemplate(body, vars) };
+  return { title: stripLinks(renderTemplate(title, vars)), body: renderTemplate(body, vars) };
 }
 
 export function formatEventTime(date: Date, timeZone: string): string {

@@ -1,9 +1,7 @@
 import nodemailer from "nodemailer";
 import { optionalString, requireString } from "../http";
+import { escapeHtml, toHtml, toPlainWithUrls, trailingLink } from "../links";
 import { DeliveryError, type NotificationProvider } from "../types";
-
-const escapeHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export const email: NotificationProvider = {
   type: "email",
@@ -19,18 +17,20 @@ export const email: NotificationProvider = {
       socketTimeout: 20_000,
     });
     const v = msg.vars;
+    const trailing = trailingLink(config, msg);
+    const footer = trailing
+      ? `<p><a href="${escapeHtml(trailing.url)}">${escapeHtml(trailing.label)}</a></p>`
+      : "";
     const avatar = v.avatar ? `<img src="${escapeHtml(v.avatar)}" width="48" height="48" style="border-radius:50%" />` : "";
     try {
       await transport.sendMail({
         from: requireString(config, "from"),
         to: requireString(config, "to"),
         subject: msg.title,
-        text: `${msg.body}\n\n${v.repo_url}`,
+        text: toPlainWithUrls(msg.body) + (trailing ? `\n\n${trailing.url}` : ""),
         html:
           `<div style="font-family:sans-serif">${avatar}<h2>${escapeHtml(msg.title)}</h2>` +
-          `<p>${escapeHtml(msg.body)}</p>` +
-          `<p><a href="${escapeHtml(v.user_url)}">${escapeHtml(v.user)}</a> · ` +
-          `<a href="${escapeHtml(v.repo_url)}">${escapeHtml(v.repo)}</a></p></div>`,
+          `<p>${toHtml(msg.body).replace(/\n/g, "<br>")}</p>${footer}</div>`,
       });
     } catch (err) {
       throw new DeliveryError(`SMTP error: ${err instanceof Error ? err.message : String(err)}`);

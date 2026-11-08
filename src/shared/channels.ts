@@ -22,6 +22,17 @@ export interface ChannelTypeInfo {
 
 const priority = (values: [string, string][]) => values.map(([value, label]) => ({ value, label }));
 
+const mainLink = (help: string): ChannelField => ({
+  key: "mainLink",
+  label: "Main link",
+  type: "select",
+  default: "repo",
+  help,
+  options: priority([["repo", "Repository"], ["user", "Stargazer"], ["none", "None"]]),
+});
+const TAP_HELP = "Opened when the notification is tapped";
+const LINE_HELP = "Added below the message when the template has no links";
+
 export const CHANNEL_TYPES: ChannelTypeInfo[] = [
   {
     type: "discord",
@@ -37,6 +48,7 @@ export const CHANNEL_TYPES: ChannelTypeInfo[] = [
         placeholder: "https://discord.com/api/webhooks/...",
       },
       { key: "username", label: "Bot name", type: "text", placeholder: "StarWatch" },
+      mainLink("Linked from the embed title"),
     ],
   },
   {
@@ -47,6 +59,7 @@ export const CHANNEL_TYPES: ChannelTypeInfo[] = [
       { key: "botToken", label: "Bot token", type: "password", required: true, secret: true, placeholder: "123456:ABC..." },
       { key: "chatId", label: "Chat ID", type: "text", required: true, placeholder: "-1001234567890" },
       { key: "threadId", label: "Topic ID", type: "text", help: "Optional forum topic id" },
+      mainLink(LINE_HELP),
     ],
   },
   {
@@ -64,6 +77,7 @@ export const CHANNEL_TYPES: ChannelTypeInfo[] = [
         default: "3",
         options: priority([["1", "Min"], ["2", "Low"], ["3", "Default"], ["4", "High"], ["5", "Max"]]),
       },
+      mainLink(TAP_HELP),
     ],
   },
   {
@@ -74,6 +88,7 @@ export const CHANNEL_TYPES: ChannelTypeInfo[] = [
       { key: "serverUrl", label: "Server URL", type: "url", required: true, placeholder: "https://gotify.example.com" },
       { key: "appToken", label: "App token", type: "password", required: true, secret: true },
       { key: "priority", label: "Priority", type: "number", default: 5 },
+      mainLink(`${TAP_HELP}. ${LINE_HELP}`),
     ],
   },
   {
@@ -89,6 +104,7 @@ export const CHANNEL_TYPES: ChannelTypeInfo[] = [
         secret: true,
         placeholder: "https://hooks.slack.com/services/...",
       },
+      mainLink(LINE_HELP),
     ],
   },
   {
@@ -107,6 +123,7 @@ export const CHANNEL_TYPES: ChannelTypeInfo[] = [
         options: priority([["-2", "Lowest"], ["-1", "Low"], ["0", "Normal"], ["1", "High"]]),
       },
       { key: "sound", label: "Sound", type: "text", help: "Optional Pushover sound name" },
+      mainLink(TAP_HELP),
     ],
   },
   {
@@ -121,6 +138,7 @@ export const CHANNEL_TYPES: ChannelTypeInfo[] = [
       { key: "password", label: "Password", type: "password", secret: true },
       { key: "from", label: "From", type: "email", required: true, placeholder: "starwatch@example.com" },
       { key: "to", label: "To", type: "text", required: true, help: "Comma separated addresses" },
+      mainLink(LINE_HELP),
     ],
   },
   {
