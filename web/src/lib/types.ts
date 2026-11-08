@@ -229,6 +229,11 @@ export interface Settings {
 export interface SecurityStatus {
   twoFactorEnabled: boolean;
   hasPassword: boolean;
+  loginAlerts: { channelIds: number[] };
+}
+
+export interface LoginAlertTestResult {
+  results: { channelId: number; name: string; ok: boolean; error: string | null }[];
 }
 
 export type TunnelMode = "token" | "quick";
