@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 type Theme = "light" | "dark" | "system";
 const STORAGE_KEY = "starwatch-theme";
+/** Page background per theme, used for the browser and installed app title bar. Also set in index.html. */
+const THEME_COLORS = { light: "#ffffff", dark: "#09090b" } as const;
 
 interface ThemeState {
   theme: Theme;
@@ -39,6 +41,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLORS[resolvedTheme]);
   }, [resolvedTheme]);
 
   const value = useMemo<ThemeState>(

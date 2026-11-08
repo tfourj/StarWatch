@@ -16,6 +16,7 @@
         const t = localStorage.getItem("starwatch-theme") || "system";
         const dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
         document.documentElement.classList.toggle("dark", dark);
+        if (dark) document.querySelector('meta[name="theme-color"]').content = "#09090b";
       } catch {}
     </script>
   </head>
