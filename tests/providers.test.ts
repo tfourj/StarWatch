@@ -21,6 +21,7 @@ const vars = {
 };
 
 const linked = "[octocat](https://github.com/octocat) starred [me/project](https://github.com/me/project).";
+const bold = "**[octocat](https://github.com/octocat)** starred **me/project**.";
 
 function message(body: string): NotificationMessage {
   return { kind: "star", title: "New star", body, action: "created", vars, occurredAt: new Date(), isTest: false };
@@ -48,6 +49,11 @@ describe("link helpers", () => {
   test("formats links as HTML and plain text", () => {
     expect(toHtml("a & [b](https://x.dev/?a=1&b=2)")).toBe('a &amp; <a href="https://x.dev/?a=1&amp;b=2">b</a>');
     expect(toPlainWithUrls("hi [b](https://x.dev)")).toBe("hi b (https://x.dev)");
+  });
+
+  test("formats bold as HTML and escapes inside it", () => {
+    expect(toHtml("**a < b** [**c**](https://x.dev)")).toBe('<b>a &lt; b</b> <b><a href="https://x.dev">c</a></b>');
+    expect(toPlainWithUrls("**hi** [b](https://x.dev)")).toBe("hi b (https://x.dev)");
   });
 
   test("lists distinct links", () => {
@@ -99,11 +105,23 @@ describe("other providers", () => {
     );
   });
 
+  test("telegram renders bold", async () => {
+    await telegram.send({ botToken: "123:abc", chatId: "1" }, message(bold));
+    expect(sentJson().text).toBe(
+      '<b>New star</b>\n<b><a href="https://github.com/octocat">octocat</a></b> starred <b>me/project</b>.',
+    );
+  });
+
   test("slack uses its own link syntax", async () => {
     await slack.send({ webhookUrl: "https://hooks.slack.test/x" }, message(linked));
     expect(sentJson().text).toBe(
       "*New star*\n<https://github.com/octocat|octocat> starred <https://github.com/me/project|me/project>.",
     );
+  });
+
+  test("slack uses single asterisks for bold", async () => {
+    await slack.send({ webhookUrl: "https://hooks.slack.test/x" }, message(bold));
+    expect(sentJson().text).toBe("*New star*\n*<https://github.com/octocat|octocat>* starred *me/project*.");
   });
 
   test("ntfy sends plain text with link buttons", async () => {
@@ -124,6 +142,15 @@ describe("other providers", () => {
     expect(form.get("message")).toContain('<a href="https://github.com/octocat">octocat</a>');
     expect(form.get("url")).toBe(vars.user_url);
     expect(form.get("url_title")).toBe("octocat");
+  });
+
+  test("ntfy and webhook drop bold from the plain message", async () => {
+    await ntfy.send({ topic: "stars" }, message(bold));
+    await webhook.send({ url: "https://hook.test" }, message(bold));
+    expect(JSON.parse(requests[0]!.body).message).toBe("octocat starred me/project.");
+    const json = JSON.parse(requests[1]!.body);
+    expect(json.message).toBe("octocat starred me/project.");
+    expect(json.message_markdown).toBe(bold);
   });
 
   test("webhook sends plain and markdown messages", async () => {
@@ -165,6 +192,12 @@ describe("email", () => {
     );
     expect(buildMail(config, message("plain"), logo).text).toBe("plain\n\nme/project: https://github.com/me/project");
     expect(buildMail({ ...config, mainLink: "none" }, message("plain"), logo).text).toBe("plain");
+  });
+
+  test("renders bold in the HTML part only", () => {
+    const mail = buildMail(config, message(bold), logo);
+    expect(mail.html).toContain('<b><a href="https://github.com/octocat">octocat</a></b> starred <b>me/project</b>.');
+    expect(String(mail.text).split("\n")[0]).toBe("octocat starred me/project.");
   });
 
   test("leaves the logo out when turned off or missing", () => {
