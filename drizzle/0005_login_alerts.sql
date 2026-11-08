@@ -1,0 +1,1 @@
+ALTER TABLE `user_settings` ADD `login_alert_channels` text;

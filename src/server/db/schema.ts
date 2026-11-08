@@ -107,6 +107,8 @@ export const userSettings = sqliteTable("user_settings", {
   pollingIntervalMinutes: integer("polling_interval_minutes").notNull().default(15),
   autoMonitorNew: integer("auto_monitor_new", { mode: "boolean" }).notNull().default(false),
   templates: text("templates", { mode: "json" }).$type<Record<string, string> | null>(),
+  /** Channels that get a message on every sign-in, null when off. */
+  loginAlertChannels: text("login_alert_channels", { mode: "json" }).$type<number[] | null>(),
   lastSyncAt: integer("last_sync_at", { mode: "timestamp_ms" }),
   lastSyncError: text("last_sync_error"),
   lastPollAt: integer("last_poll_at", { mode: "timestamp_ms" }),
