@@ -15,20 +15,23 @@ function runGit(args: string[]): string | null {
   }
 }
 
+/** True when `commit` carries the stable tag for this version. Pre-release versions never count. */
+function isReleaseCommit(commit: string, git: Git, version: string): boolean {
+  if (version.includes("-")) return false;
+  const tags = git(["tag", "--points-at", commit]);
+  return tags?.split("\n").some((tag) => tag.trim() === `v${version}`) ?? false;
+}
+
 /**
  * Short commit shown in place of the version for builds that are not a stable release, or null to show the version.
- * Images get STARWATCH_COMMIT and STARWATCH_RELEASE from CI. Without them, a git checkout uses its HEAD, unless HEAD
- * is the stable tag for this version.
+ * Images get STARWATCH_COMMIT and STARWATCH_RELEASE from CI. Without them, a git checkout uses its HEAD. Any build
+ * whose commit carries the stable tag for this version shows the version, whatever branch or tag it was built from.
  */
 export function buildCommit(env: Env = process.env, git: Git = runGit, version = VERSION): string | null {
   if (env.STARWATCH_RELEASE === "true") return null;
-  const fromEnv = env.STARWATCH_COMMIT?.trim();
-  if (fromEnv) return fromEnv.slice(0, 7);
-
-  const head = git(["rev-parse", "--short=7", "HEAD"]);
-  if (!head) return null;
-  const isStableTag = !version.includes("-") && git(["describe", "--tags", "--exact-match", "HEAD"]) === `v${version}`;
-  return isStableTag ? null : head;
+  const commit = env.STARWATCH_COMMIT?.trim() || git(["rev-parse", "HEAD"]);
+  if (!commit) return null;
+  return isReleaseCommit(commit, git, version) ? null : commit.slice(0, 7);
 }
 
 export const COMMIT = buildCommit();
