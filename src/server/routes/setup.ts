@@ -6,7 +6,7 @@ import { getConfig } from "../config";
 import { getDb } from "../db/client";
 import { readJson } from "../lib/http";
 import { logger } from "../logger";
-import { VERSION } from "./health";
+import { VERSION } from "../lib/build-info";
 
 const log = logger.child("setup");
 

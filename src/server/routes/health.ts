@@ -1,11 +1,9 @@
 import { sql } from "drizzle-orm";
 import { Hono } from "hono";
-import pkg from "../../../package.json";
 import { getDb } from "../db/client";
+import { VERSION } from "../lib/build-info";
 
 const startedAt = Date.now();
-/** From package.json, bundled into the server at build time. */
-export const VERSION: string = pkg.version;
 
 export const health = new Hono().get("/", (c) => {
   try {
