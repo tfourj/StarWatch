@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { DEFAULT_TEMPLATES } from "../src/shared/templates";
+import { DEFAULT_TEMPLATES, formatLinks, hasLinks, parseLinks, stripLinks } from "../src/shared/templates";
 import { mergeTemplates, renderMessage, renderTemplate } from "../src/server/lib/template";
 import { buildVars } from "../src/server/notifications/worker";
 
@@ -34,6 +34,44 @@ describe("renderTemplate", () => {
 
   test("numbers are stringified", () => {
     expect(renderTemplate("{stars} stars", { stars: 7 })).toBe("7 stars");
+  });
+});
+
+describe("template links", () => {
+  const text = renderTemplate("[{user}]({user_url}) starred [{repo}]({repo_url}).", vars);
+
+  test("parses links into segments", () => {
+    expect(parseLinks(text)).toEqual([
+      { text: "octocat", url: "https://github.com/octocat" },
+      { text: " starred " },
+      { text: "me/project", url: "https://github.com/me/project" },
+      { text: "." },
+    ]);
+  });
+
+  test("only http and https URLs are links", () => {
+    expect(hasLinks("[a](ftp://x) [b](not a url) [c]()")).toBe(false);
+    expect(hasLinks("see [docs](http://example.com)")).toBe(true);
+  });
+
+  test("formats links and plain text separately", () => {
+    const html = formatLinks("a < [b](https://x.dev/?q=1) >", {
+      text: (t) => t.replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+      link: (t, u) => `<a href="${u}">${t}</a>`,
+    });
+    expect(html).toBe('a &lt; <a href="https://x.dev/?q=1">b</a> &gt;');
+  });
+
+  test("stripLinks keeps the link text", () => {
+    expect(stripLinks(text)).toBe("octocat starred me/project.");
+    expect(stripLinks("no links here")).toBe("no links here");
+  });
+
+  test("renderMessage strips links from the title only", () => {
+    const t = mergeTemplates({ starTitle: "[{repo}]({repo_url})", starBody: "[{user}]({user_url})" });
+    const msg = renderMessage("created", t, vars);
+    expect(msg.title).toBe("me/project");
+    expect(msg.body).toBe("[octocat](https://github.com/octocat)");
   });
 });
 
