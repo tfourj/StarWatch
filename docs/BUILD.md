@@ -16,7 +16,8 @@ docker run -d --name starwatch -p 4321:4321 -e BASE_URL=https://starwatch.exampl
 ## Published images
 
 CI (`.github/workflows/ci.yml`) runs the typecheck, tests and build on every push and pull request, and publishes
-`ghcr.io/tfourj/starwatch` for `linux/amd64` and `linux/arm64` from `main` and version tags.
+`ghcr.io/tfourj/starwatch` for `linux/amd64` and `linux/arm64` from `main`, version tags and pull requests. Pull
+requests from forks are built but not published.
 
 | Tag                        | Built from                                   |
 | -------------------------- | -------------------------------------------- |
@@ -25,6 +26,8 @@ CI (`.github/workflows/ci.yml`) runs the typecheck, tests and build on every pus
 | `v1.3.0-rc.1`              | Pre-release tags (exact tag only)            |
 | `main`                     | Every push to `main` (unreleased)            |
 | `sha-<commit>`             | Every push                                   |
+| `preview`                  | The newest pull request build                |
+| `pr-<number>`              | Every push to that pull request              |
 
 To release, bump `version` in `package.json`, add the release to `CHANGELOG.md`, commit, then tag and push:
 
