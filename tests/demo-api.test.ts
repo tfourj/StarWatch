@@ -28,6 +28,13 @@ describe("demo api", () => {
     await expect(send("PUT", "/me/seen-version", { version: "" })).rejects.toThrow("Invalid version");
   });
 
+  test("keeps time preferences until the demo resets", async () => {
+    expect(await get("/me/preferences")).toMatchObject({ timezone: null, timeFormat: "auto", timeStyle: "relative" });
+    await send("PUT", "/me/preferences", { timezone: "Asia/Tokyo", timeFormat: "12h", timeStyle: "absolute" });
+    expect(await get("/me/preferences")).toMatchObject({ timezone: "Asia/Tokyo", timeFormat: "12h" });
+    await expect(send("PUT", "/me/preferences", { timezone: "Mars/Olympus" })).rejects.toThrow("Unknown timezone");
+  });
+
   test("dashboard has stats, a 30 day chart and recent events", async () => {
     const d = await get("/dashboard");
     expect(d.stats.totalStars).toBeGreaterThan(4000);
