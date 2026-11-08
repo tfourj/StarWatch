@@ -658,6 +658,7 @@ function userView(u: DemoUser) {
     email: u.email,
     role: u.role,
     image: null,
+    twoFactorEnabled: false,
     createdAt: u.createdAt,
     isSelf: u.id === DEMO_USER_ID,
   };

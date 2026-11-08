@@ -1,11 +1,11 @@
 import { hashPassword } from "better-auth/crypto";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, like, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AuthedEnv } from "../auth/middleware";
 import { registerUser, RegistrationError, type Role } from "../auth/registration";
 import { getConfig } from "../config";
 import { getDb } from "../db/client";
-import { account, session, user } from "../db/schema";
+import { account, session, twoFactor, user, verification } from "../db/schema";
 import { HttpError, readJson } from "../lib/http";
 import { logger } from "../logger";
 
@@ -32,6 +32,7 @@ function view(row: typeof user.$inferSelect, selfId: string) {
     email: row.email,
     role: row.role,
     image: row.image,
+    twoFactorEnabled: row.twoFactorEnabled,
     createdAt: row.createdAt,
     isSelf: row.id === selfId,
   };
@@ -103,6 +104,19 @@ export const users = new Hono<AuthedEnv>()
     });
     log.info("password reset", { by: c.get("user").id, id: target.id });
     return c.json({ ok: true });
+  })
+  // Recovery for a user who lost their authenticator app and backup codes.
+  .post("/:id/two-factor/reset", (c) => {
+    const target = findUser(c.req.param("id"));
+    getDb().transaction((tx) => {
+      tx.delete(twoFactor).where(eq(twoFactor.userId, target.id)).run();
+      tx.update(user).set({ twoFactorEnabled: false }).where(eq(user.id, target.id)).run();
+      tx.delete(verification)
+        .where(and(eq(verification.value, target.id), like(verification.identifier, "trust-device-%")))
+        .run();
+    });
+    log.info("two factor reset", { by: c.get("user").id, id: target.id });
+    return c.json(view(findUser(target.id), c.get("user").id));
   })
   .delete("/:id", (c) => {
     const target = findUser(c.req.param("id"));

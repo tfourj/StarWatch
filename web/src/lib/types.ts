@@ -265,6 +265,7 @@ export interface ManagedUser {
   email: string;
   role: Role;
   image: string | null;
+  twoFactorEnabled: boolean;
   createdAt: string;
   isSelf: boolean;
 }
