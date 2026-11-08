@@ -29,11 +29,14 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh && mkdir -p /data && chown bun:bun /data
 
-# Set by CI. Builds that are not a stable release show the short commit instead of the version.
+# Set by CI. Builds that are not a stable release show the short commit instead of the version, and how many commits
+# it is past the newest release (`git describe --long` output).
 ARG STARWATCH_COMMIT=""
 ARG STARWATCH_RELEASE="false"
+ARG STARWATCH_DESCRIBE=""
 ENV STARWATCH_COMMIT=$STARWATCH_COMMIT \
-    STARWATCH_RELEASE=$STARWATCH_RELEASE
+    STARWATCH_RELEASE=$STARWATCH_RELEASE \
+    STARWATCH_DESCRIBE=$STARWATCH_DESCRIBE
 
 VOLUME /data
 EXPOSE 4321
