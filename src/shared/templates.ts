@@ -42,9 +42,14 @@ export function renderTemplate(template: string, vars: Partial<Record<string, st
 export interface TemplateSegment {
   text: string;
   url?: string;
+  bold?: boolean;
 }
 
 const LINK_PATTERN = /\[([^[\]\n]+)\]\((https?:\/\/[^\s()]+)\)/g;
+/** **text** on one line, with no space just inside the markers. */
+const BOLD_PATTERN = /\*\*(?=\S)([^\n]*?\S)\*\*/g;
+const WHOLE_BOLD = /^\*\*(?=\S)([^\n]*\S)\*\*$/;
+const LINK_SLOT = /\u0000(\d+)\u0000/;
 
 /** Split rendered text into plain and linked parts. Only [text](http or https URL) counts as a link. */
 export function parseLinks(text: string): TemplateSegment[] {
@@ -63,18 +68,66 @@ export function hasLinks(text: string): boolean {
   return parseLinks(text).some((s) => s.url);
 }
 
-/** Rebuild text with each part formatted, for example as HTML anchors or Slack links. */
-export function formatMarkup(
-  text: string,
-  format: { text?: (text: string) => string; link: (text: string, url: string) => string },
-): string {
-  const plain = format.text ?? ((t: string) => t);
-  return parseLinks(text)
-    .map((s) => (s.url ? format.link(s.text, s.url) : plain(s.text)))
-    .join("");
+/**
+ * Split rendered text into parts with their link and bold flags. **text** is bold and may wrap links, as in
+ * **[{user}]({user_url})**. A link is also bold when its whole text is, as in [**{user}**]({user_url}).
+ */
+export function parseMarkup(text: string): TemplateSegment[] {
+  const links: TemplateSegment[] = [];
+  // Hide links first so markers inside a link cannot start or end a bold run.
+  const masked = text.replace(LINK_PATTERN, (_match, label: string, url: string) => {
+    const inner = WHOLE_BOLD.exec(label)?.[1];
+    links.push(inner ? { text: inner, url, bold: true } : { text: label, url });
+    return `\u0000${links.length - 1}\u0000`;
+  });
+
+  const segments: TemplateSegment[] = [];
+  const addRun = (run: string, bold: boolean) => {
+    run.split(LINK_SLOT).forEach((part, i) => {
+      if (i % 2 === 1) {
+        const link = links[Number(part)]!;
+        segments.push(bold ? { ...link, bold } : link);
+      } else if (part) {
+        segments.push(bold ? { text: part, bold } : { text: part });
+      }
+    });
+  };
+  let last = 0;
+  for (const match of masked.matchAll(BOLD_PATTERN)) {
+    addRun(masked.slice(last, match.index), false);
+    addRun(match[1]!, true);
+    last = match.index + match[0].length;
+  }
+  addRun(masked.slice(last), false);
+  return segments;
 }
 
-/** Replace links with their text. */
+export interface MarkupFormat {
+  text?: (text: string) => string;
+  link: (text: string, url: string) => string;
+  /** Wraps a run of bold parts that are already formatted. Leave out to drop the markers. */
+  bold?: (inner: string) => string;
+}
+
+/** Rebuild text with each part formatted, for example as HTML or Slack mrkdwn. */
+export function formatMarkup(text: string, format: MarkupFormat): string {
+  const plain = format.text ?? ((t: string) => t);
+  const bold = format.bold ?? ((t: string) => t);
+  let out = "";
+  let run = "";
+  let inBold = false;
+  for (const s of parseMarkup(text)) {
+    if (Boolean(s.bold) !== inBold) {
+      out += inBold ? bold(run) : run;
+      run = "";
+      inBold = !inBold;
+    }
+    run += s.url ? format.link(s.text, s.url) : plain(s.text);
+  }
+  return out + (inBold ? bold(run) : run);
+}
+
+/** Replace links with their text and drop bold markers. */
 export function stripMarkup(text: string): string {
   return formatMarkup(text, { link: (t) => t });
 }
