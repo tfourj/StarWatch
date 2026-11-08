@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { MessageTemplates } from "../../shared/templates";
+import { isValidTimeZone, type TimePreferences } from "../../shared/time";
 import { getConfig } from "../config";
 import { getDb } from "../db/client";
 import { appSettings, userSettings, type UserSettings } from "../db/schema";
@@ -39,6 +40,18 @@ export function getGithubClient(userId: string): GitHubClient | null {
 
 export function getUserTemplates(userId: string): Partial<MessageTemplates> | null {
   return (getUserSettings(userId).templates as Partial<MessageTemplates> | null) ?? null;
+}
+
+export function getTimePreferences(userId: string): TimePreferences {
+  const s = getUserSettings(userId);
+  const timezone = s.timezone && isValidTimeZone(s.timezone) ? s.timezone : null;
+  return { timezone, timeFormat: s.timeFormat, timeStyle: s.timeStyle };
+}
+
+/** Timezone and hour format for times the server formats for the user. The timezone falls back to `TZ`. */
+export function getUserTimeFormat(userId: string) {
+  const prefs = getTimePreferences(userId);
+  return { timeZone: prefs.timezone ?? getConfig().timezone, timeFormat: prefs.timeFormat };
 }
 
 export function getAppSetting(key: string): string | null {
