@@ -1,5 +1,6 @@
 import type { FrequencyTier } from "@shared/frequency";
 import type { MessageTemplates } from "@shared/templates";
+import type { TimePreferences } from "@shared/time";
 
 export type Role = "admin" | "user";
 export type RepoMode = "webhook" | "polling" | "both";
@@ -23,6 +24,11 @@ export interface CurrentUser {
   email: string;
   image: string | null;
   role: Role;
+}
+
+export interface TimePreferencesView extends TimePreferences {
+  /** `TZ` on the server, used for notifications while no timezone is chosen. */
+  serverTimezone: string;
 }
 
 export interface RateLimit {

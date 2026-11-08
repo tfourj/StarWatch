@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, errorMessage } from "@/lib/api";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime, withTimePreferences } from "@/lib/utils";
 
 type Level = "debug" | "info" | "warn" | "error";
 
@@ -47,7 +47,8 @@ function formatValue(value: unknown): string {
 }
 
 function shortTime(iso: string) {
-  const format = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const options = withTimePreferences({ hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const format = new Intl.DateTimeFormat(undefined, options);
   return format.format(new Date(iso));
 }
 
