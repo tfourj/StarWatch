@@ -14,6 +14,7 @@ import { dashboard } from "./routes/dashboard";
 import { events } from "./routes/events";
 import { health } from "./routes/health";
 import { logs } from "./routes/logs";
+import { me } from "./routes/me";
 import { repos } from "./routes/repos";
 import { security } from "./routes/security";
 import { settingsRoutes } from "./routes/settings";
@@ -90,7 +91,7 @@ export function createApp() {
 
   const authed = new Hono<AuthedEnv>();
   authed.use("*", requireAuth);
-  authed.get("/me", (c) => c.json({ user: c.get("user") }));
+  authed.route("/me", me);
   authed.route("/dashboard", dashboard);
   authed.route("/repos", repos);
   authed.route("/events", events);

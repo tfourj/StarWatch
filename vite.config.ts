@@ -3,6 +3,7 @@ import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+import { buildCommit } from "./src/server/lib/build-info";
 
 const pkg = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "package.json"), "utf8")) as {
   version: string;
@@ -22,8 +23,10 @@ function spaRedirects(): Plugin {
 // `vite build --mode demo` builds a static demo with an in-browser fake API (see web/src/demo).
 export default defineConfig(({ mode }) => {
   const demo = mode === "demo";
-  // Cloudflare Pages builds the demo from main and sets CF_PAGES_COMMIT_SHA, shown in place of the version.
-  const commit = (demo && process.env.CF_PAGES_COMMIT_SHA?.slice(0, 7)) || null;
+  // Cloudflare Pages builds the demo from main and sets CF_PAGES_COMMIT_SHA, shown in place of the version unless
+  // that commit is the release tag.
+  const pagesCommit = process.env.CF_PAGES_COMMIT_SHA;
+  const commit = demo && pagesCommit ? buildCommit({ STARWATCH_COMMIT: pagesCommit }, undefined, pkg.version) : null;
   return {
     root: "web",
     plugins: [react(), tailwindcss(), demo && spaRedirects()],

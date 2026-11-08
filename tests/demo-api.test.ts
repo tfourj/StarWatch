@@ -21,6 +21,13 @@ describe("demo api", () => {
     expect((await get("/me")).user.role).toBe("admin");
   });
 
+  test("remembers the seen version", async () => {
+    expect((await get("/me/seen-version")).version).toBeNull();
+    await send("PUT", "/me/seen-version", { version: "1.2.0" });
+    expect((await get("/me/seen-version")).version).toBe("1.2.0");
+    await expect(send("PUT", "/me/seen-version", { version: "" })).rejects.toThrow("Invalid version");
+  });
+
   test("dashboard has stats, a 30 day chart and recent events", async () => {
     const d = await get("/dashboard");
     expect(d.stats.totalStars).toBeGreaterThan(4000);

@@ -44,11 +44,39 @@ jobs:
     permissions:
       contents: read
       packages: write
+    # Builds of the same commit (a push to main and its release tag) run one after the other, so the later
+    # one sees the tag and :main ends up with the release image.
+    concurrency:
+      group: image-${{ github.event.pull_request.head.sha || github.sha }}
+      cancel-in-progress: false
     env:
       # Pull requests from forks get a read-only token, so they only build the image.
       PUSH: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - uses: actions/checkout@v5
+
+      # Any build of a commit that carries the stable tag for package.json's version is a release build. A release
+      # tag pushed while its commit is still the head of main also publishes :main.
+      - name: Check for a release tag
+        id: release
+        env:
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          version="$(jq -r .version package.json)"
+          release=false
+          main=false
+          if [[ "$version" != *-* ]]; then
+            # Annotated tags list the tag object first and the commit it points at as ^{} after it.
+            tag="refs/tags/v$version"
+            tag_sha="$(git ls-remote --tags origin | awk -v t="$tag" '$2 == t || $2 == t"^{}" { s = $1 } END { print s }')"
+            if [ "$tag_sha" = "$SHA" ]; then release=true; fi
+          fi
+          main_sha="$(git ls-remote origin "refs/heads/$DEFAULT_BRANCH" | cut -f1)"
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$release" = true ] && [ "$main_sha" = "$SHA" ]; then main=true; fi
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "main=$main" >> "$GITHUB_OUTPUT"
+          echo "v$version release build: $release, head of $DEFAULT_BRANCH: $main"
 
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
@@ -66,8 +94,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           # Releases (tags like v1.2.3): v1.2.3, v1.2, v1 and latest. Pre-releases (v1.2.3-rc.1) only get their
-          # exact tag. Pushes to main get :main, so :latest always means the newest release. Pull requests get
-          # :pr-<number> and :preview, which always points at the most recent pull request build.
+          # exact tag. Pushes to main get :main, so :latest always means the newest release. A release tag on the
+          # head of main also gets :main. Pull requests get :pr-<number> and :preview, which always points at the
+          # most recent pull request build.
           flavor: |
             latest=false
           tags: |
@@ -76,6 +105,7 @@ jobs:
             type=semver,pattern={{major}},prefix=v,enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
             type=raw,value=main,enable={{is_default_branch}}
+            type=raw,value=main,enable=${{ steps.release.outputs.main == 'true' }}
             type=ref,event=pr
             type=raw,value=preview,enable=${{ github.event_name == 'pull_request' }}
 
@@ -89,6 +119,6 @@ jobs:
           # Pull requests use the head commit, not the merge commit GitHub builds.
           build-args: |
             STARWATCH_COMMIT=${{ github.event.pull_request.head.sha || github.sha }}
-            STARWATCH_RELEASE=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-') }}
+            STARWATCH_RELEASE=${{ steps.release.outputs.release }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

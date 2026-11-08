@@ -51,6 +51,7 @@ interface State {
   };
   loginAlertChannelIds: number[];
   logs: LogBuffer;
+  seenVersion: string | null;
 }
 
 let state: State | null = null;
@@ -74,6 +75,7 @@ export function resetDemo(now = Date.now()) {
     settings: { pollingIntervalMinutes: 15, autoMonitorNew: false, templates: null },
     loginAlertChannelIds: [],
     logs: buildLogs(data, now),
+    seenVersion: readStoredSeenVersion(),
   };
   return state;
 }
@@ -88,6 +90,31 @@ function unavailable(what: string): never {
 
 function badRequest(message: string): never {
   throw new ApiError(message, 400);
+}
+
+/* ------------------------------ Release notes ------------------------------ */
+
+// Unlike the rest of the demo, the seen version survives a reload so the "What's new" dot stays cleared.
+const SEEN_VERSION_KEY = "starwatch-seen-version";
+
+function readStoredSeenVersion() {
+  try {
+    return localStorage.getItem(SEEN_VERSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function markSeenVersion(body: Body) {
+  const version = typeof body.version === "string" ? body.version.trim() : "";
+  if (!version || version.length > 64) badRequest("Invalid version");
+  getState().seenVersion = version;
+  try {
+    localStorage.setItem(SEEN_VERSION_KEY, version);
+  } catch {
+    // storage may be unavailable
+  }
+  return { version };
 }
 
 function notFound(what = "Not found"): never {
@@ -766,6 +793,8 @@ const ROUTES: [string, RegExp, Handler][] = [
     /^\/me$/,
     () => ({ user: { id: DEMO_USER_ID, name: DEMO_USER.name, email: DEMO_USER.email, image: null, role: "admin" } }),
   ],
+  ["GET", /^\/me\/seen-version$/, () => ({ version: getState().seenVersion })],
+  ["PUT", /^\/me\/seen-version$/, (_, __, body) => markSeenVersion(body)],
   ["GET", /^\/dashboard$/, () => dashboard()],
   ["GET", /^\/repos$/, () => listRepos()],
   ["POST", /^\/repos\/sync$/, () => unavailable("Syncing with GitHub")],

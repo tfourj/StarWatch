@@ -109,6 +109,8 @@ export const userSettings = sqliteTable("user_settings", {
   templates: text("templates", { mode: "json" }).$type<Record<string, string> | null>(),
   /** Channels that get a message on every sign-in, null when off. */
   loginAlertChannels: text("login_alert_channels", { mode: "json" }).$type<number[] | null>(),
+  /** Last version whose release notes the user opened, null until they open them. */
+  seenVersion: text("seen_version"),
   lastSyncAt: integer("last_sync_at", { mode: "timestamp_ms" }),
   lastSyncError: text("last_sync_error"),
   lastPollAt: integer("last_poll_at", { mode: "timestamp_ms" }),

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "@/lib/api";
 import type { CurrentUser, SetupStatus } from "@/lib/types";
 
@@ -19,5 +19,24 @@ export function useMe() {
     },
     staleTime: 60_000,
     retry: false,
+  });
+}
+
+const SEEN_VERSION_KEY = ["seen-version"];
+
+/** Last version whose release notes the signed-in user opened, shared across all their devices. */
+export function useSeenVersion() {
+  return useQuery({
+    queryKey: SEEN_VERSION_KEY,
+    queryFn: async () => (await api.get<{ version: string | null }>("/me/seen-version")).version,
+  });
+}
+
+export function useMarkVersionSeen() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (version: string) => api.put<{ version: string }>("/me/seen-version", { version }),
+    onMutate: (version) => queryClient.setQueryData(SEEN_VERSION_KEY, version),
+    onError: () => queryClient.invalidateQueries({ queryKey: SEEN_VERSION_KEY }),
   });
 }

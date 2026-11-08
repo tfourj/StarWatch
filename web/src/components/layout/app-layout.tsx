@@ -21,7 +21,7 @@ import { DemoBanner } from "@/components/demo-banner";
 import { GitHubIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
 import { useTheme } from "@/components/theme-provider";
-import { useSetupStatus } from "@/hooks/use-session";
+import { useMarkVersionSeen, useSeenVersion, useSetupStatus } from "@/hooks/use-session";
 import { UserAvatar } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -159,32 +159,18 @@ function UserMenu({ user }: { user: CurrentUser }) {
 
 const REPO_URL = "https://github.com/tfourj/StarWatch";
 
-const SEEN_VERSION_KEY = "starwatch-seen-version";
-
-function readSeenVersion() {
-  try {
-    return localStorage.getItem(SEEN_VERSION_KEY);
-  } catch {
-    return null;
-  }
-}
-
 function RepoLink() {
   const { data: setup } = useSetupStatus();
+  const { data: seenVersion } = useSeenVersion();
+  const markSeen = useMarkVersionSeen();
   const [changelogOpen, setChangelogOpen] = useState(false);
-  const [seenVersion, setSeenVersion] = useState(readSeenVersion);
   const version = setup?.version;
-  const unseen = Boolean(version && seenVersion !== version);
+  // Hidden until the account's seen version loads, so it does not flash on devices that already cleared it.
+  const unseen = Boolean(version && seenVersion !== undefined && seenVersion !== version);
 
   function openChangelog() {
     setChangelogOpen(true);
-    if (!version) return;
-    setSeenVersion(version);
-    try {
-      localStorage.setItem(SEEN_VERSION_KEY, version);
-    } catch {
-      // storage may be unavailable
-    }
+    if (version && seenVersion !== version) markSeen.mutate(version);
   }
 
   const linkClass =
