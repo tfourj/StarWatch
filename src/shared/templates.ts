@@ -64,7 +64,7 @@ export function hasLinks(text: string): boolean {
 }
 
 /** Rebuild text with each part formatted, for example as HTML anchors or Slack links. */
-export function formatLinks(
+export function formatMarkup(
   text: string,
   format: { text?: (text: string) => string; link: (text: string, url: string) => string },
 ): string {
@@ -75,6 +75,6 @@ export function formatLinks(
 }
 
 /** Replace links with their text. */
-export function stripLinks(text: string): string {
-  return formatLinks(text, { link: (t) => t });
+export function stripMarkup(text: string): string {
+  return formatMarkup(text, { link: (t) => t });
 }

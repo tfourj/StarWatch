@@ -1,4 +1,4 @@
-import { stripLinks } from "../../../shared/templates";
+import { stripMarkup } from "../../../shared/templates";
 import { optionalString, requireString, sendHttp } from "../http";
 import { DeliveryError, type NotificationProvider } from "../types";
 
@@ -20,7 +20,7 @@ export const webhook: NotificationProvider = {
     const common = {
       test: msg.isTest,
       title: msg.title,
-      message: stripLinks(msg.body),
+      message: stripMarkup(msg.body),
       message_markdown: msg.body,
       time: msg.occurredAt.toISOString(),
     };

@@ -3,7 +3,7 @@ import path from "node:path";
 import nodemailer, { type SendMailOptions } from "nodemailer";
 import { webDir } from "../../lib/web-dir";
 import { optionalString, requireString } from "../http";
-import { stripLinks } from "../../../shared/templates";
+import { stripMarkup } from "../../../shared/templates";
 import { escapeHtml, listLinks, toHtml, trailingLink } from "../links";
 import { DeliveryError, type ChannelConfig, type NotificationMessage, type NotificationProvider } from "../types";
 
@@ -47,7 +47,7 @@ export function buildMail(config: ChannelConfig, msg: NotificationMessage, logo:
     from: name ? { name, address } : address,
     to: requireString(config, "to"),
     subject: msg.title,
-    text: [stripLinks(msg.body), urls].filter(Boolean).join("\n\n"),
+    text: [stripMarkup(msg.body), urls].filter(Boolean).join("\n\n"),
     html:
       `<div style="font-family:sans-serif">${header}` +
       `<table role="presentation" cellpadding="0" cellspacing="0"><tr>${avatar}${content}</tr></table></div>`,

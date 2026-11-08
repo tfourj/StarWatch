@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { DEFAULT_TEMPLATES, formatLinks, hasLinks, parseLinks, stripLinks } from "../src/shared/templates";
+import { DEFAULT_TEMPLATES, formatMarkup, hasLinks, parseLinks, stripMarkup } from "../src/shared/templates";
 import { formatEventTime, mergeTemplates, renderMessage, renderTemplate } from "../src/server/lib/template";
 import { buildVars } from "../src/server/notifications/worker";
 
@@ -55,16 +55,16 @@ describe("template links", () => {
   });
 
   test("formats links and plain text separately", () => {
-    const html = formatLinks("a < [b](https://x.dev/?q=1) >", {
+    const html = formatMarkup("a < [b](https://x.dev/?q=1) >", {
       text: (t) => t.replace(/</g, "&lt;").replace(/>/g, "&gt;"),
       link: (t, u) => `<a href="${u}">${t}</a>`,
     });
     expect(html).toBe('a &lt; <a href="https://x.dev/?q=1">b</a> &gt;');
   });
 
-  test("stripLinks keeps the link text", () => {
-    expect(stripLinks(text)).toBe("octocat starred me/project.");
-    expect(stripLinks("no links here")).toBe("no links here");
+  test("stripMarkup keeps the link text", () => {
+    expect(stripMarkup(text)).toBe("octocat starred me/project.");
+    expect(stripMarkup("no links here")).toBe("no links here");
   });
 
   test("renderMessage strips links from the title only", () => {

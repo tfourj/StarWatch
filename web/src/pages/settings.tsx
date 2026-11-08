@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseLinks, renderTemplate, stripLinks, TEMPLATE_VARIABLES, type MessageTemplates } from "@shared/templates";
+import { parseLinks, renderTemplate, stripMarkup, TEMPLATE_VARIABLES, type MessageTemplates } from "@shared/templates";
 import { CheckCircle2, Copy, ExternalLink, KeyRound, Plus, RefreshCw, ShieldOff, Trash2, UserCog } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
@@ -440,7 +440,7 @@ function TemplatesTab({ settings }: { settings: Settings }) {
                   value={templates[f.key]}
                   onChange={(e) => setTemplates((t) => ({ ...t, [f.key]: e.target.value }))}
                 />
-                <TemplatePreview text={isTitle ? stripLinks(rendered) : rendered} />
+                <TemplatePreview text={isTitle ? stripMarkup(rendered) : rendered} />
               </div>
             );
           })}
