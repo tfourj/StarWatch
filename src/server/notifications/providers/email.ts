@@ -3,7 +3,8 @@ import path from "node:path";
 import nodemailer, { type SendMailOptions } from "nodemailer";
 import { webDir } from "../../lib/web-dir";
 import { optionalString, requireString } from "../http";
-import { escapeHtml, toHtml, toPlainWithUrls, trailingLink } from "../links";
+import { stripLinks } from "../../../shared/templates";
+import { escapeHtml, listLinks, toHtml, trailingLink } from "../links";
 import { DeliveryError, type ChannelConfig, type NotificationMessage, type NotificationProvider } from "../types";
 
 const LOGO_CID = "starwatch-logo";
@@ -36,6 +37,8 @@ export function buildMail(config: ChannelConfig, msg: NotificationMessage, logo:
     ? `<td style="padding-right:16px;vertical-align:top;width:48px">` +
       `<img src="${escapeHtml(v.avatar)}" width="48" height="48" alt="" style="display:block;border-radius:50%" /></td>`
     : "";
+  // URLs go below the message so the inbox preview shows only the text.
+  const urls = (trailing ? [trailing] : listLinks(msg.body)).map((l) => `${l.label}: ${l.url}`).join("\n");
   const content =
     `<td style="vertical-align:top"><h2 style="margin:0 0 8px;font-size:20px">${escapeHtml(msg.title)}</h2>` +
     `<p style="margin:0">${toHtml(msg.body).replace(/\n/g, "<br>")}</p>${footer}</td>`;
@@ -44,7 +47,7 @@ export function buildMail(config: ChannelConfig, msg: NotificationMessage, logo:
     from: name ? { name, address } : address,
     to: requireString(config, "to"),
     subject: msg.title,
-    text: toPlainWithUrls(msg.body) + (trailing ? `\n\n${trailing.url}` : ""),
+    text: [stripLinks(msg.body), urls].filter(Boolean).join("\n\n"),
     html:
       `<div style="font-family:sans-serif">${header}` +
       `<table role="presentation" cellpadding="0" cellspacing="0"><tr>${avatar}${content}</tr></table></div>`,
