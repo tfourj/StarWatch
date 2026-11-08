@@ -152,6 +152,21 @@ describe("email", () => {
     expect(mail.attachments).toEqual([{ filename: "starwatch.png", path: logo, cid: "starwatch-logo" }]);
   });
 
+  test("puts the avatar beside the message", () => {
+    const withAvatar = { ...message("plain"), vars: { ...vars, avatar: "https://avatars.test/octocat" } };
+    const html = String(buildMail(config, withAvatar, logo).html);
+    expect(html).toMatch(/<tr><td[^>]*><img src="https:\/\/avatars\.test\/octocat"[^>]*><\/td><td[^>]*><h2/);
+  });
+
+  test("lists urls after the plain text so the preview stays clean", () => {
+    const text = buildMail(config, message(linked), logo).text;
+    expect(text).toBe(
+      "octocat starred me/project.\n\noctocat: https://github.com/octocat\nme/project: https://github.com/me/project",
+    );
+    expect(buildMail(config, message("plain"), logo).text).toBe("plain\n\nme/project: https://github.com/me/project");
+    expect(buildMail({ ...config, mainLink: "none" }, message("plain"), logo).text).toBe("plain");
+  });
+
   test("leaves the logo out when turned off or missing", () => {
     const off = buildMail({ ...config, showLogo: false }, message("plain"), logo);
     const missing = buildMail(config, message("plain"), null);

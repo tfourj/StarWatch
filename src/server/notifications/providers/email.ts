@@ -3,7 +3,8 @@ import path from "node:path";
 import nodemailer, { type SendMailOptions } from "nodemailer";
 import { webDir } from "../../lib/web-dir";
 import { optionalString, requireString } from "../http";
-import { escapeHtml, toHtml, toPlainWithUrls, trailingLink } from "../links";
+import { stripLinks } from "../../../shared/templates";
+import { escapeHtml, listLinks, toHtml, trailingLink } from "../links";
 import { DeliveryError, type ChannelConfig, type NotificationMessage, type NotificationProvider } from "../types";
 
 const LOGO_CID = "starwatch-logo";
@@ -23,23 +24,33 @@ export function buildMail(config: ChannelConfig, msg: NotificationMessage, logo:
   const v = msg.vars;
   const trailing = trailingLink(config, msg);
   const footer = trailing
-    ? `<p><a href="${escapeHtml(trailing.url)}">${escapeHtml(trailing.label)}</a></p>`
+    ? `<p style="margin:12px 0 0"><a href="${escapeHtml(trailing.url)}">${escapeHtml(trailing.label)}</a></p>`
     : "";
   const header = showLogo
-    ? `<img src="cid:${LOGO_CID}" width="40" height="40" alt="StarWatch" style="display:block;margin-bottom:16px" />`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:20px"><tr>` +
+      `<td style="padding-right:8px;vertical-align:middle">` +
+      `<img src="cid:${LOGO_CID}" width="24" height="24" alt="" style="display:block;border-radius:6px" /></td>` +
+      `<td style="vertical-align:middle;font-size:14px;font-weight:600;color:#555">StarWatch</td>` +
+      `</tr></table>`
     : "";
   const avatar = msg.kind === "star" && v.avatar
-    ? `<img src="${escapeHtml(v.avatar)}" width="48" height="48" style="border-radius:50%" />`
+    ? `<td style="padding-right:16px;vertical-align:top;width:48px">` +
+      `<img src="${escapeHtml(v.avatar)}" width="48" height="48" alt="" style="display:block;border-radius:50%" /></td>`
     : "";
+  // URLs go below the message so the inbox preview shows only the text.
+  const urls = (trailing ? [trailing] : listLinks(msg.body)).map((l) => `${l.label}: ${l.url}`).join("\n");
+  const content =
+    `<td style="vertical-align:top"><h2 style="margin:0 0 8px;font-size:20px">${escapeHtml(msg.title)}</h2>` +
+    `<p style="margin:0">${toHtml(msg.body).replace(/\n/g, "<br>")}</p>${footer}</td>`;
 
   return {
     from: name ? { name, address } : address,
     to: requireString(config, "to"),
     subject: msg.title,
-    text: toPlainWithUrls(msg.body) + (trailing ? `\n\n${trailing.url}` : ""),
+    text: [stripLinks(msg.body), urls].filter(Boolean).join("\n\n"),
     html:
-      `<div style="font-family:sans-serif">${header}${avatar}<h2>${escapeHtml(msg.title)}</h2>` +
-      `<p>${toHtml(msg.body).replace(/\n/g, "<br>")}</p>${footer}</div>`,
+      `<div style="font-family:sans-serif">${header}` +
+      `<table role="presentation" cellpadding="0" cellspacing="0"><tr>${avatar}${content}</tr></table></div>`,
     attachments: showLogo ? [{ filename: "starwatch.png", path: logo, cid: LOGO_CID }] : undefined,
   };
 }
