@@ -93,6 +93,13 @@ Templates are set in **Settings → Templates** and can be overridden per channe
 | `{action}`   | `starred` or `unstarred`           |
 | `{time}`     | Event time in `TZ`                 |
 
+Write `[text](url)` for a link, for example `[{user}]({user_url}) starred [{repo}]({repo_url})`. Each channel renders
+it in its own format. Titles show the link text only, and ntfy shows each link as a button.
+
+The **Main link** option on a channel picks the repository, the stargazer or nothing. It is opened when a Gotify, ntfy
+or Pushover notification is tapped and linked from the Discord embed title. On Telegram, Slack, Email and Gotify it is
+also added below the message when the template has no links of its own.
+
 Failed deliveries are retried up to 6 times with exponential backoff (30s, 1m, 2m, 4m, 8m). Every attempt is logged
 and visible in **Events**, where you can also retry by hand.
 
