@@ -29,6 +29,12 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh && mkdir -p /data && chown bun:bun /data
 
+# Set by CI. Builds that are not a stable release show the short commit instead of the version.
+ARG STARWATCH_COMMIT=""
+ARG STARWATCH_RELEASE="false"
+ENV STARWATCH_COMMIT=$STARWATCH_COMMIT \
+    STARWATCH_RELEASE=$STARWATCH_RELEASE
+
 VOLUME /data
 EXPOSE 4321
 
