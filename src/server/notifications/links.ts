@@ -7,10 +7,11 @@ export interface MainLink {
   label: string;
 }
 
-/** The channel's main link: the repository (default), the stargazer, or none. */
+/** The channel's main link: the repository (default), the stargazer, or none. Login alerts link to settings. */
 export function mainLink(config: ChannelConfig, msg: NotificationMessage): MainLink | null {
   const choice = optionalString(config, "mainLink") ?? "repo";
   if (choice === "none") return null;
+  if (msg.kind === "login") return msg.link;
   if (choice === "user") return { url: msg.vars.user_url, label: msg.vars.user };
   return { url: msg.vars.repo_url, label: msg.vars.repo };
 }

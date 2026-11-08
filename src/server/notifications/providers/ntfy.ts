@@ -18,8 +18,8 @@ export const ntfy: NotificationProvider = {
         message: stripLinks(msg.body),
         click: mainLink(config, msg)?.url,
         actions: actions.length ? actions : undefined,
-        icon: msg.vars.avatar || undefined,
-        tags: [msg.action === "created" ? "star" : "broken_heart"],
+        icon: (msg.kind === "star" && msg.vars.avatar) || undefined,
+        tags: [msg.kind === "login" ? "lock" : msg.action === "created" ? "star" : "broken_heart"],
         priority: Number(optionalString(config, "priority") ?? 3),
       },
     });

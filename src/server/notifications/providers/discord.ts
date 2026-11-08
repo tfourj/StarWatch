@@ -13,11 +13,15 @@ export const discord: NotificationProvider = {
             title: msg.title,
             description: msg.body,
             url: mainLink(config, msg)?.url,
-            color: msg.action === "created" ? 0xf5c518 : 0x9ca3af,
-            author: { name: msg.vars.user, url: msg.vars.user_url, icon_url: msg.vars.avatar || undefined },
-            thumbnail: msg.vars.avatar ? { url: msg.vars.avatar } : undefined,
+            color: msg.kind === "login" ? 0x3b82f6 : msg.action === "created" ? 0xf5c518 : 0x9ca3af,
             timestamp: msg.occurredAt.toISOString(),
-            footer: { text: `${msg.vars.stars} stars` },
+            ...(msg.kind === "star"
+              ? {
+                  author: { name: msg.vars.user, url: msg.vars.user_url, icon_url: msg.vars.avatar || undefined },
+                  thumbnail: msg.vars.avatar ? { url: msg.vars.avatar } : undefined,
+                  footer: { text: `${msg.vars.stars} stars` },
+                }
+              : {}),
           },
         ],
       },

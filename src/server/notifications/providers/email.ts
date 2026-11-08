@@ -21,7 +21,7 @@ export const email: NotificationProvider = {
     const footer = trailing
       ? `<p><a href="${escapeHtml(trailing.url)}">${escapeHtml(trailing.label)}</a></p>`
       : "";
-    const avatar = v.avatar ? `<img src="${escapeHtml(v.avatar)}" width="48" height="48" style="border-radius:50%" />` : "";
+    const avatar = msg.kind === "star" && v.avatar ? `<img src="${escapeHtml(v.avatar)}" width="48" height="48" style="border-radius:50%" />` : "";
     try {
       await transport.sendMail({
         from: requireString(config, "from"),
