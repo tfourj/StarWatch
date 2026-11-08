@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseLinks, renderTemplate, stripMarkup, TEMPLATE_VARIABLES, type MessageTemplates } from "@shared/templates";
+import { parseMarkup, renderTemplate, stripMarkup, TEMPLATE_VARIABLES, type MessageTemplates } from "@shared/templates";
 import { CheckCircle2, Copy, ExternalLink, KeyRound, Plus, RefreshCw, ShieldOff, Trash2, UserCog } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
@@ -35,7 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, errorMessage } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import type { CurrentUser, ManagedUser, Role, Settings } from "@/lib/types";
-import { formatDateTime, formatNumber, timeAgo } from "@/lib/utils";
+import { cn, formatDateTime, formatNumber, timeAgo } from "@/lib/utils";
 
 const TOKEN_URL =
   "https://github.com/settings/tokens/new?description=StarWatch&scopes=public_repo,admin:repo_hook";
@@ -376,19 +376,21 @@ const TEMPLATE_FIELDS: { key: keyof MessageTemplates; label: string; unstar?: bo
 function TemplatePreview({ text }: { text: string }) {
   return (
     <p className="rounded bg-muted px-2 py-1.5 text-xs text-muted-foreground">
-      {parseLinks(text).map((s, i) =>
+      {parseMarkup(text).map((s, i) =>
         s.url ? (
           <a
             key={i}
             href={s.url}
             target="_blank"
             rel="noreferrer"
-            className="text-foreground underline underline-offset-2"
+            className={cn("text-foreground underline underline-offset-2", s.bold && "font-semibold")}
           >
             {s.text}
           </a>
         ) : (
-          <span key={i}>{s.text}</span>
+          <span key={i} className={s.bold ? "font-semibold text-foreground" : undefined}>
+            {s.text}
+          </span>
         ),
       )}
     </p>
@@ -415,7 +417,8 @@ function TemplatesTab({ settings }: { settings: Settings }) {
         <CardTitle>Message templates</CardTitle>
         <CardDescription>
           Defaults for every channel. A channel can override them. Use <code>{"{{"}</code> and <code>{"}}"}</code> for
-          literal braces. Write <code>[text](url)</code> for a link, for example <code>{"[{user}]({user_url})"}</code>.
+          literal braces. Write <code>[text](url)</code> for a link, for example <code>{"[{user}]({user_url})"}</code>,
+          and <code>**text**</code> for bold.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
