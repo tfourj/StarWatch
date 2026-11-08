@@ -23,6 +23,7 @@
 - Notifications for stars, unstars or only milestones (every 10, 100 ... stars)
 - Custom message templates
 - Dashboard with stats, chart and event log
+- Two-factor authentication and login alerts on your channels
 - Dark and light mode, multiple users
 
 ## Screenshots
