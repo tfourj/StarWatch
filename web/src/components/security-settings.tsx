@@ -1,12 +1,15 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Download } from "lucide-react";
+import { getChannelType } from "@shared/channels";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Copy, Download, Send } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link } from "react-router";
 import { toast } from "sonner";
 import { encode } from "uqr";
 import { ErrorNote, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -18,9 +21,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
-import type { SecurityStatus } from "@/lib/types";
+import type { Channel, LoginAlertTestResult, SecurityStatus } from "@/lib/types";
 
 export function useSecurity() {
   return useQuery({ queryKey: ["security"], queryFn: () => api.get<SecurityStatus>("/security") });
@@ -390,6 +393,100 @@ function TwoFactorCard({ status }: { status: SecurityStatus }) {
   );
 }
 
+function sameIds(a: number[], b: number[]) {
+  return a.length === b.length && a.every((id) => b.includes(id));
+}
+
+function LoginAlertsCard({ status }: { status: SecurityStatus }) {
+  const queryClient = useQueryClient();
+  const { data, isPending } = useQuery({
+    queryKey: ["channels"],
+    queryFn: () => api.get<{ channels: Channel[] }>("/channels"),
+  });
+  const saved = status.loginAlerts.channelIds;
+  const savedKey = saved.join(",");
+  const [selected, setSelected] = useState<number[]>(saved);
+  // Reset only when the saved ids change, not on every refetch.
+  useEffect(() => setSelected(saved), [savedKey]);
+
+  const save = useMutation({
+    mutationFn: () => api.put<SecurityStatus>("/security/login-alerts", { channelIds: selected }),
+    onSuccess: (next) => {
+      queryClient.setQueryData(["security"], next);
+      toast.success(next.loginAlerts.channelIds.length ? "Login alerts saved" : "Login alerts turned off");
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+  const test = useMutation({
+    mutationFn: () => api.post<LoginAlertTestResult>("/security/login-alerts/test", { channelIds: selected }),
+    onSuccess: ({ results }) => {
+      for (const r of results) {
+        if (r.ok) toast.success(`Test alert sent to ${r.name}`);
+        else toast.error(`${r.name}: ${r.error}`);
+      }
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+
+  const toggle = (id: number, on: boolean) =>
+    setSelected((ids) => (on ? [...new Set([...ids, id])] : ids.filter((x) => x !== id)));
+  const channels = data?.channels ?? [];
+  const dirty = !sameIds(selected, saved);
+  const hasEnabled = channels.some((c) => c.enabled && selected.includes(c.id));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          Login alerts
+          <Badge variant={saved.length ? "success" : "outline"}>{saved.length ? "On" : "Off"}</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isPending ? (
+          <Skeleton className="h-16" />
+        ) : channels.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No channels yet.{" "}
+            <Link to="/channels" className="font-medium text-foreground underline-offset-4 hover:underline">
+              Add a channel
+            </Link>{" "}
+            to get login alerts.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {channels.map((channel) => (
+              <label key={channel.id} className="flex items-center gap-3 rounded-md border px-3 py-2 text-sm">
+                <Checkbox
+                  checked={selected.includes(channel.id)}
+                  onCheckedChange={(v) => toggle(channel.id, v === true)}
+                />
+                <span className="min-w-0 flex-1 truncate font-medium">{channel.name}</span>
+                {!channel.enabled && <Badge variant="outline">Disabled</Badge>}
+                <span className="text-xs text-muted-foreground">
+                  {getChannelType(channel.type)?.name ?? channel.type}
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </CardContent>
+      {channels.length > 0 && (
+        <CardFooter className="flex justify-end gap-2">
+          <Button variant="outline" disabled={!hasEnabled || test.isPending} onClick={() => test.mutate()}>
+            {test.isPending ? <Spinner /> : <Send />}
+            Send test
+          </Button>
+          <Button disabled={!dirty || save.isPending} onClick={() => save.mutate()}>
+            {save.isPending && <Spinner />}
+            Save
+          </Button>
+        </CardFooter>
+      )}
+    </Card>
+  );
+}
+
 export function SecuritySettings() {
   const { data, isPending, error } = useSecurity();
   if (error) return <ErrorNote>{error.message}</ErrorNote>;
@@ -398,6 +495,7 @@ export function SecuritySettings() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <TwoFactorCard status={data} />
+      <LoginAlertsCard status={data} />
     </div>
   );
 }
