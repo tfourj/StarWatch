@@ -5,6 +5,8 @@ import type { AppConfig } from "../config";
 import type { DB } from "../db/client";
 import { account, session, twoFactor, user, verification } from "../db/schema";
 import { logger } from "../logger";
+import { queueLoginAlerts } from "../services/login-alerts";
+import { loginAlertsPlugin } from "./login-alerts";
 import { countUsers } from "./registration";
 
 const log = logger.child("auth");
@@ -52,6 +54,8 @@ export function createAuth(db: DB, config: AppConfig) {
     plugins: [
       // Authenticator app codes with single-use backup codes. Only password sign-ins ask for a code.
       twoFactorPlugin({ issuer: "StarWatch", backupCodeOptions: { amount: 10, length: 10 } }),
+      // Keep last so it sees the session only once two-factor has finished.
+      loginAlertsPlugin(queueLoginAlerts),
     ],
     databaseHooks: {
       user: {
