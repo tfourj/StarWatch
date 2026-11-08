@@ -4,7 +4,7 @@ import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
-import { buildCommit } from "./src/server/lib/build-info";
+import { buildAhead, buildCommit } from "./src/server/lib/build-info";
 
 const pkg = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "package.json"), "utf8")) as {
   version: string;
@@ -70,7 +70,9 @@ export default defineConfig(({ mode }) => {
   // Cloudflare Pages builds the demo from main and sets CF_PAGES_COMMIT_SHA, shown in place of the version unless
   // that commit is the release tag.
   const pagesCommit = process.env.CF_PAGES_COMMIT_SHA;
-  const commit = demo && pagesCommit ? buildCommit({ STARWATCH_COMMIT: pagesCommit }, undefined, pkg.version) : null;
+  const pagesEnv = { STARWATCH_COMMIT: pagesCommit };
+  const commit = demo && pagesCommit ? buildCommit(pagesEnv, undefined, pkg.version) : null;
+  const ahead = demo && pagesCommit ? buildAhead(pagesEnv, undefined, pkg.version) : null;
   return {
     root: "web",
     plugins: [react(), tailwindcss(), demo && spaRedirects(), serviceWorker()],
@@ -78,6 +80,7 @@ export default defineConfig(({ mode }) => {
       __DEMO__: JSON.stringify(demo),
       __APP_VERSION__: JSON.stringify(pkg.version),
       __APP_COMMIT__: JSON.stringify(commit),
+      __APP_AHEAD__: JSON.stringify(ahead),
     },
     resolve: {
       alias: {

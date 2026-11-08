@@ -6,3 +6,5 @@ declare const __DEMO__: boolean;
 declare const __APP_VERSION__: string;
 /** Short commit for demo builds that are not a stable release. */
 declare const __APP_COMMIT__: string | null;
+/** Commits since the newest stable release for demo builds that are not a stable release. */
+declare const __APP_AHEAD__: { release: string; commits: number } | null;
