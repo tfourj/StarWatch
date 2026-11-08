@@ -21,6 +21,7 @@ export const user = sqliteTable("user", {
   emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
   image: text("image"),
   role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
+  twoFactorEnabled: integer("two_factor_enabled", { mode: "boolean" }).notNull().default(false),
   ...timestamps,
 });
 
@@ -68,6 +69,23 @@ export const verification = sqliteTable("verification", {
   expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
   ...timestamps,
 });
+
+export const twoFactor = sqliteTable(
+  "two_factor",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Encrypted by Better Auth with BETTER_AUTH_SECRET. */
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    verified: integer("verified", { mode: "boolean" }).notNull().default(true),
+    failedVerificationCount: integer("failed_verification_count").notNull().default(0),
+    lockedUntil: integer("locked_until", { mode: "timestamp_ms" }),
+  },
+  (t) => [index("two_factor_user_idx").on(t.userId)],
+);
 
 /* ------------------------------- Settings ------------------------------ */
 

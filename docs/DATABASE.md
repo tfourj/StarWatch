@@ -9,10 +9,11 @@ Values marked *encrypted* are AES-256-GCM ciphertext (key derived from `ENCRYPTI
 
 | Table          | Purpose                                                                  |
 | -------------- | ------------------------------------------------------------------------ |
-| `user`         | Accounts. Adds `role` (`admin` or `user`)                                |
+| `user`         | Accounts. Adds `role` (`admin` or `user`) and `two_factor_enabled`       |
 | `session`      | Login sessions                                                           |
 | `account`      | Credentials (password hash) and linked OAuth providers                   |
-| `verification` | Short-lived verification tokens                                          |
+| `verification` | Short-lived verification tokens, 2FA challenges and trusted devices      |
+| `two_factor`   | TOTP secret and backup codes per user, encrypted with `BETTER_AUTH_SECRET` |
 
 ## App settings
 
