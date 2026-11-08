@@ -21,9 +21,9 @@ export interface MessageTemplates {
 
 export const DEFAULT_TEMPLATES: MessageTemplates = {
   starTitle: "New star on {repo}",
-  starBody: "{user} starred {repo}. It now has {stars} stars.",
+  starBody: "[{user}]({user_url}) starred [{repo}]({repo_url}). It now has {stars} stars.",
   unstarTitle: "Star removed from {repo}",
-  unstarBody: "{user} unstarred {repo}. It now has {stars} stars.",
+  unstarBody: "[{user}]({user_url}) unstarred [{repo}]({repo_url}). It now has {stars} stars.",
 };
 
 /** Replace {name} placeholders. Unknown placeholders are left untouched, {{ and }} escape braces. */
