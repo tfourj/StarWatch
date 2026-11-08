@@ -7,7 +7,7 @@ import { describeUserAgent } from "../lib/user-agent";
 import { logger } from "../logger";
 import { sendToChannel } from "../notifications/worker";
 import type { LoginDetails, LoginMessage } from "../notifications/types";
-import { getUserSettings, updateUserSettings } from "./settings";
+import { getUserSettings, getUserTimeFormat, updateUserSettings } from "./settings";
 
 const log = logger.child("login-alerts");
 
@@ -53,9 +53,14 @@ export function setLoginAlertChannelIds(userId: string, ids: number[]): number[]
   return kept;
 }
 
-export function buildLoginMessage(details: LoginDetails, at: Date, isTest = false): LoginMessage {
+export function buildLoginMessage(
+  details: LoginDetails,
+  at: Date,
+  isTest = false,
+  format: ReturnType<typeof getUserTimeFormat> = { timeZone: getConfig().timezone, timeFormat: "auto" },
+): LoginMessage {
   const config = getConfig();
-  const time = formatEventTime(at, config.timezone);
+  const time = formatEventTime(at, format.timeZone, format.timeFormat);
   const link = { url: `${config.baseUrl.replace(/\/+$/, "")}/settings?tab=security`, label: "Security settings" };
   const lines = [
     `${details.name} (${details.email}) signed in to StarWatch.`,
@@ -123,7 +128,7 @@ export async function sendLoginAlerts(signIn: SignIn, options: { test?: boolean;
     device: describeUserAgent(signIn.userAgent),
     userAgent: signIn.userAgent,
   };
-  const message = buildLoginMessage(details, signIn.at, options.test);
+  const message = buildLoginMessage(details, signIn.at, options.test, getUserTimeFormat(signIn.userId));
 
   return Promise.all(
     targets.map(async (channel): Promise<LoginAlertResult> => {

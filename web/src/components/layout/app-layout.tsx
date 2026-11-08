@@ -1,3 +1,4 @@
+import { DEFAULT_TIME_PREFERENCES } from "@shared/time";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -21,7 +22,7 @@ import { DemoBanner } from "@/components/demo-banner";
 import { GitHubIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
 import { useTheme } from "@/components/theme-provider";
-import { useMarkVersionSeen, useSeenVersion, useSetupStatus } from "@/hooks/use-session";
+import { useMarkVersionSeen, useSeenVersion, useSetupStatus, useTimePreferences } from "@/hooks/use-session";
 import { UserAvatar } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,7 +38,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { authClient } from "@/lib/auth-client";
 import { IS_DEMO } from "@/lib/env";
 import type { CurrentUser } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, setTimePreferences } from "@/lib/utils";
 
 const NAV: { to: string; label: string; icon: LucideIcon; adminOnly?: boolean }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -218,6 +219,10 @@ export function AppLayout({ user }: { user: CurrentUser }) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const current = NAV.find((n) => (n.to === "/" ? location.pathname === "/" : location.pathname.startsWith(n.to)));
+  const timePreferences = useTimePreferences().data ?? DEFAULT_TIME_PREFERENCES;
+  setTimePreferences(timePreferences);
+  // Formatters read the preferences when they run, so pages are remounted to pick up a change.
+  const timeKey = `${timePreferences.timezone}|${timePreferences.timeFormat}|${timePreferences.timeStyle}`;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -247,7 +252,7 @@ export function AppLayout({ user }: { user: CurrentUser }) {
         </header>
         <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <Suspense fallback={<Skeleton className="h-64" />}>
-            <Outlet />
+            <Outlet key={timeKey} />
           </Suspense>
         </main>
       </div>

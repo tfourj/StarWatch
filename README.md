@@ -47,7 +47,6 @@ Bun, Hono, SQLite (Drizzle), Better Auth, React, Tailwind CSS
    ```bash
    # Public HTTPS URL, used for GitHub webhooks and login
    BASE_URL=https://starwatch.example.com
-   TZ=Europe/Berlin
 
    # Generate each with: openssl rand -base64 32
    # Optional, generated into /data/secrets.json if empty. Never change ENCRYPTION_SECRET later.
@@ -56,6 +55,8 @@ Bun, Hono, SQLite (Drizzle), Better Auth, React, Tailwind CSS
 
    # Optional
    PORT=4321
+   # Default timezone, each user can change it in Settings → Account
+   TZ=Europe/Berlin
    ALLOW_REGISTRATION=false
    GITHUB_CLIENT_ID=
    GITHUB_CLIENT_SECRET=

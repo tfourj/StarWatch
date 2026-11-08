@@ -6,6 +6,7 @@ import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { CloudflaredSettings } from "@/components/cloudflared-settings";
 import { SecuritySettings } from "@/components/security-settings";
+import { TimeSettings } from "@/components/time-settings";
 import { ConfirmDialog, ErrorNote, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -363,7 +364,6 @@ const SAMPLE_VARS = {
   repo_url: "https://github.com/you/awesome-project",
   stars: "128",
   action: "starred",
-  time: new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date()),
 };
 
 const TEMPLATE_FIELDS: { key: keyof MessageTemplates; label: string; unstar?: boolean }[] = [
@@ -431,7 +431,8 @@ function TemplatesTab({ settings }: { settings: Settings }) {
         </div>
         <div className="grid gap-5 md:grid-cols-2">
           {TEMPLATE_FIELDS.map((f) => {
-            const vars = f.unstar ? { ...SAMPLE_VARS, action: "unstarred", stars: "127" } : SAMPLE_VARS;
+            const sample = { ...SAMPLE_VARS, time: formatDateTime(new Date()) };
+            const vars = f.unstar ? { ...sample, action: "unstarred", stars: "127" } : sample;
             const rendered = renderTemplate(templates[f.key] || settings.defaultTemplates[f.key], vars);
             const isTitle = f.key.endsWith("Title");
             return (
@@ -547,6 +548,8 @@ function AccountTab({ user }: { user: CurrentUser }) {
           </form>
         </CardContent>
       </Card>
+
+      <TimeSettings />
     </div>
   );
 }

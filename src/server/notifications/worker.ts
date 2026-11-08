@@ -1,6 +1,6 @@
 import { and, eq, inArray, lte } from "drizzle-orm";
 import type { TemplateVars } from "../../shared/templates";
-import { getConfig } from "../config";
+import type { TimeFormat } from "../../shared/time";
 import { getDb } from "../db/client";
 import {
   channels,
@@ -15,7 +15,7 @@ import {
 import { formatEventTime, mergeTemplates, renderMessage } from "../lib/template";
 import { logger } from "../logger";
 import { decryptChannelConfig } from "../services/channels";
-import { getUserTemplates } from "../services/settings";
+import { getUserTemplates, getUserTimeFormat } from "../services/settings";
 import { getProvider } from "./providers";
 import type { NotificationMessage, StarMessage } from "./types";
 
@@ -34,6 +34,7 @@ export function buildVars(
   event: Pick<StarEvent, "action" | "actorLogin" | "actorUrl" | "actorAvatarUrl" | "starCount" | "occurredAt">,
   repo: Pick<Repository, "fullName" | "htmlUrl">,
   timeZone: string,
+  timeFormat: TimeFormat = "auto",
 ): TemplateVars {
   return {
     user: event.actorLogin,
@@ -43,7 +44,7 @@ export function buildVars(
     repo_url: repo.htmlUrl,
     stars: String(event.starCount),
     action: event.action === "created" ? "starred" : "unstarred",
-    time: formatEventTime(event.occurredAt, timeZone),
+    time: formatEventTime(event.occurredAt, timeZone, timeFormat),
   };
 }
 
@@ -54,7 +55,8 @@ export function buildMessage(
   isTest = false,
 ): StarMessage {
   const templates = mergeTemplates(getUserTemplates(channel.userId), channel.templates);
-  const vars = buildVars(event, repo, getConfig().timezone);
+  const { timeZone, timeFormat } = getUserTimeFormat(channel.userId);
+  const vars = buildVars(event, repo, timeZone, timeFormat);
   const { title, body } = renderMessage(event.action, templates, vars);
   return {
     kind: "star",

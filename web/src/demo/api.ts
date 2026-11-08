@@ -15,6 +15,15 @@ import {
 import { validateFrequencyTiers, type FrequencyTier } from "@shared/frequency";
 import { LOG_LEVELS, LogBuffer, type LogLevel } from "@shared/log-buffer";
 import { DEFAULT_TEMPLATES, type MessageTemplates } from "@shared/templates";
+import {
+  DEFAULT_TIME_PREFERENCES,
+  isValidTimeZone,
+  TIME_FORMATS,
+  TIME_STYLES,
+  type TimeFormat,
+  type TimePreferences,
+  type TimeStyle,
+} from "@shared/time";
 import { ApiError } from "@/lib/api";
 
 const MINUTE = 60_000;
@@ -53,6 +62,7 @@ interface State {
   loginAlertChannelIds: number[];
   logs: LogBuffer;
   seenVersion: string | null;
+  timePreferences: TimePreferences;
 }
 
 let state: State | null = null;
@@ -77,6 +87,7 @@ export function resetDemo(now = Date.now()) {
     loginAlertChannelIds: [],
     logs: buildLogs(data, now),
     seenVersion: readStoredSeenVersion(),
+    timePreferences: { ...DEFAULT_TIME_PREFERENCES },
   };
   return state;
 }
@@ -116,6 +127,30 @@ function markSeenVersion(body: Body) {
     // storage may be unavailable
   }
   return { version };
+}
+
+/* ----------------------------- Time preferences ---------------------------- */
+
+function timePreferences() {
+  return { ...getState().timePreferences, serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
+}
+
+function saveTimePreferences(body: Body) {
+  const prefs = getState().timePreferences;
+  if (body.timezone !== undefined) {
+    const timezone = typeof body.timezone === "string" ? body.timezone.trim() : "";
+    if (body.timezone !== null && (!timezone || !isValidTimeZone(timezone))) badRequest("Unknown timezone");
+    prefs.timezone = timezone || null;
+  }
+  if (body.timeFormat !== undefined) {
+    if (!TIME_FORMATS.includes(body.timeFormat as TimeFormat)) badRequest("Invalid time format");
+    prefs.timeFormat = body.timeFormat as TimeFormat;
+  }
+  if (body.timeStyle !== undefined) {
+    if (!TIME_STYLES.includes(body.timeStyle as TimeStyle)) badRequest("Invalid time style");
+    prefs.timeStyle = body.timeStyle as TimeStyle;
+  }
+  return timePreferences();
 }
 
 function notFound(what = "Not found"): never {
@@ -803,6 +838,8 @@ const ROUTES: [string, RegExp, Handler][] = [
   ],
   ["GET", /^\/me\/seen-version$/, () => ({ version: getState().seenVersion })],
   ["PUT", /^\/me\/seen-version$/, (_, __, body) => markSeenVersion(body)],
+  ["GET", /^\/me\/preferences$/, () => timePreferences()],
+  ["PUT", /^\/me\/preferences$/, (_, __, body) => saveTimePreferences(body)],
   ["GET", /^\/dashboard$/, () => dashboard()],
   ["GET", /^\/repos$/, () => listRepos()],
   ["POST", /^\/repos\/sync$/, () => unavailable("Syncing with GitHub")],

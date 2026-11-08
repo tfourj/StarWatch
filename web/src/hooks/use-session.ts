@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { TimePreferences } from "@shared/time";
 import { api, ApiError } from "@/lib/api";
-import type { CurrentUser, SetupStatus } from "@/lib/types";
+import type { CurrentUser, SetupStatus, TimePreferencesView } from "@/lib/types";
 
 export function useSetupStatus() {
   return useQuery({ queryKey: ["setup-status"], queryFn: () => api.get<SetupStatus>("/setup/status"), staleTime: 30_000 });
@@ -38,5 +39,29 @@ export function useMarkVersionSeen() {
     mutationFn: (version: string) => api.put<{ version: string }>("/me/seen-version", { version }),
     onMutate: (version) => queryClient.setQueryData(SEEN_VERSION_KEY, version),
     onError: () => queryClient.invalidateQueries({ queryKey: SEEN_VERSION_KEY }),
+  });
+}
+
+const TIME_PREFERENCES_KEY = ["time-preferences"];
+
+/** The signed-in user's timezone and time display, shared across all their devices. */
+export function useTimePreferences(enabled = true) {
+  return useQuery({
+    queryKey: TIME_PREFERENCES_KEY,
+    queryFn: () => api.get<TimePreferencesView>("/me/preferences"),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useSaveTimePreferences() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (prefs: Partial<TimePreferences>) => api.put<TimePreferencesView>("/me/preferences", prefs),
+    onSuccess: (data) => {
+      queryClient.setQueryData(TIME_PREFERENCES_KEY, data);
+      // The dashboard buckets days in the chosen timezone.
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
   });
 }

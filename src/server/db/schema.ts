@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import type { FrequencyTier } from "../../shared/frequency";
+import { TIME_FORMATS, TIME_STYLES } from "../../shared/time";
 
 const timestamps = {
   createdAt: integer("created_at", { mode: "timestamp_ms" })
@@ -111,6 +112,10 @@ export const userSettings = sqliteTable("user_settings", {
   loginAlertChannels: text("login_alert_channels", { mode: "json" }).$type<number[] | null>(),
   /** Last version whose release notes the user opened, null until they open them. */
   seenVersion: text("seen_version"),
+  /** IANA timezone, null to fall back to `TZ`. */
+  timezone: text("timezone"),
+  timeFormat: text("time_format", { enum: TIME_FORMATS }).notNull().default("auto"),
+  timeStyle: text("time_style", { enum: TIME_STYLES }).notNull().default("relative"),
   lastSyncAt: integer("last_sync_at", { mode: "timestamp_ms" }),
   lastSyncError: text("last_sync_error"),
   lastPollAt: integer("last_poll_at", { mode: "timestamp_ms" }),

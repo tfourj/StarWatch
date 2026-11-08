@@ -131,6 +131,15 @@ describe("login alert message", () => {
     expect(buildLoginMessage(details, at, true).title).toBe("[Test] New sign-in to StarWatch");
   });
 
+  test("shows the time in TZ, or in the given timezone and hour format", () => {
+    const at = new Date(Date.UTC(2026, 10, 8, 14, 5));
+    const details = { name: "Ada", email: "ada@example.com", method: "Password", ip: null, device: "curl" };
+    const body = (format?: Parameters<typeof buildLoginMessage>[3]) =>
+      buildLoginMessage({ ...details, userAgent: null }, at, false, format).body;
+    expect(body()).toContain("Time: 8 Nov 2026, 14:05 UTC");
+    expect(body({ timeZone: "Asia/Tokyo", timeFormat: "12h" })).toContain("Time: 8 Nov 2026, 11:05 pm GMT+9");
+  });
+
   describe("providers", () => {
     const realFetch = globalThis.fetch;
     let bodies: unknown[] = [];

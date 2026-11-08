@@ -161,6 +161,13 @@ describe("formatEventTime", () => {
     expect(formatEventTime(at, "Europe/Ljubljana")).toBe("7 Nov 2026, 20:00 CET");
   });
 
+  test("uses 24-hour time unless 12-hour time is chosen", () => {
+    expect(formatEventTime(at, "UTC", "auto")).toBe("7 Nov 2026, 19:00 UTC");
+    expect(formatEventTime(at, "UTC", "24h")).toBe("7 Nov 2026, 19:00 UTC");
+    expect(formatEventTime(at, "UTC", "12h")).toBe("7 Nov 2026, 7:00 pm UTC");
+    expect(formatEventTime(new Date(Date.UTC(2026, 10, 7, 0, 5)), "UTC", "12h")).toBe("7 Nov 2026, 12:05 am UTC");
+  });
+
   test("falls back to ISO for an unknown timezone", () => {
     expect(formatEventTime(at, "Not/AZone")).toBe("2026-11-07T19:00:00.000Z");
   });

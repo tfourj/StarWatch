@@ -2,7 +2,7 @@ import { Loader2 } from "lucide-react";
 import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { AppLayout } from "@/components/layout/app-layout";
-import { useMe, useSetupStatus } from "@/hooks/use-session";
+import { useMe, useSetupStatus, useTimePreferences } from "@/hooks/use-session";
 import { LoginPage } from "@/pages/login";
 import { RegisterPage } from "@/pages/register";
 
@@ -24,8 +24,9 @@ function Splash() {
 export function App() {
   const setup = useSetupStatus();
   const me = useMe();
+  const timePreferences = useTimePreferences(Boolean(me.data));
 
-  if (setup.isPending || me.isPending) return <Splash />;
+  if (setup.isPending || me.isPending || timePreferences.isLoading) return <Splash />;
 
   if (setup.data?.needsSetup) {
     return (
