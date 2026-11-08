@@ -41,7 +41,7 @@ notification per star.
 | `BETTER_AUTH_SECRET`   | generated                 | Session signing secret, at least 32 characters                     |
 | `ENCRYPTION_SECRET`    | generated                 | Key for encrypting tokens and channel credentials                  |
 | `ALLOW_REGISTRATION`   | `false`                   | Let more users sign up after the first admin                       |
-| `TZ`                   | `UTC`                     | Timezone for `{time}` and the dashboard day boundaries             |
+| `TZ`                   | `UTC`                     | Default timezone for `{time}` and dashboard days                   |
 | `GITHUB_CLIENT_ID`     |                           | Optional GitHub OAuth app for "Continue with GitHub"               |
 | `GITHUB_CLIENT_SECRET` |                           | Secret for the OAuth app                                           |
 | `SYNC_INTERVAL_MINUTES`| `60`                      | How often repos and webhooks are synced                            |
@@ -91,7 +91,7 @@ Templates are set in **Settings → Templates** and can be overridden per channe
 | `{repo_url}` | Repository URL                     |
 | `{stars}`    | Star count after the event         |
 | `{action}`   | `starred` or `unstarred`           |
-| `{time}`     | Event time in `TZ`                 |
+| `{time}`     | Event time in your timezone        |
 
 Write `[text](url)` for a link, for example `[{user}]({user_url}) starred [{repo}]({repo_url})`, and `**text**` for
 bold, for example `**[{user}]({user_url})**`. Each channel renders them in its own format. Titles show plain text only,
@@ -118,6 +118,14 @@ and visible in **Events**, where you can also retry by hand.
   their codes, an admin can turn it off in **Settings → Users**.
 - **Login alerts:** pick one or more existing channels. Every sign-in sends a message with the method, device, IP
   address and time. Disabled channels are skipped. **Send test** sends a sample to the selected channels.
+
+## Time display
+
+**Settings → Account → Time display** sets your timezone, a 12 or 24-hour clock, and whether recent times show as
+"5 minutes ago" or as a date and time. Each account has its own choice.
+
+With the **Default** timezone, the app uses your browser's timezone, and `{time}`, login alerts and dashboard days use
+`TZ`. A chosen timezone is used everywhere and overrides `TZ`. Changing `TZ` later only affects accounts on Default.
 
 ## Cloudflare Tunnel
 
