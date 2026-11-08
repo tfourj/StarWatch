@@ -11,6 +11,8 @@ export interface SetupStatus {
   registrationOpen: boolean;
   githubOAuth: boolean;
   version: string;
+  /** Short commit for builds that are not a stable release, shown in place of the version. */
+  commit: string | null;
 }
 
 export interface CurrentUser {

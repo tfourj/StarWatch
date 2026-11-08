@@ -203,7 +203,7 @@ function RepoLink() {
           title="What's new"
           className={cn("relative font-mono tabular-nums", linkClass)}
         >
-          v{version}
+          {setup?.commit ?? `v${version}`}
           {unseen && <span className="absolute top-1.5 right-0.5 size-1.5 rounded-full bg-star" />}
         </button>
       )}
