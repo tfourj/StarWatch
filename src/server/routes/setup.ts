@@ -6,7 +6,7 @@ import { getConfig } from "../config";
 import { getDb } from "../db/client";
 import { readJson } from "../lib/http";
 import { logger } from "../logger";
-import { VERSION } from "../lib/build-info";
+import { COMMIT, VERSION } from "../lib/build-info";
 
 const log = logger.child("setup");
 
@@ -19,6 +19,7 @@ export const setup = new Hono<AppEnv>()
       registrationOpen: needsSetup || config.allowRegistration,
       githubOAuth: Boolean(config.github),
       version: VERSION,
+      commit: COMMIT,
     });
   })
   .post("/register", async (c) => {
