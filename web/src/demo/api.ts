@@ -771,6 +771,7 @@ const ROUTES: [string, RegExp, Handler][] = [
   ["POST", /^\/settings\/github-token\/check$/, () => unavailable("Checking the GitHub token")],
   ["DELETE", /^\/settings\/github-token$/, () => unavailable("Removing the GitHub token")],
   ["PATCH", /^\/settings\/app$/, () => unavailable("Changing the webhook URL")],
+  ["GET", /^\/security$/, () => ({ twoFactorEnabled: false, hasPassword: true })],
   [
     "GET",
     /^\/settings\/cloudflared$/,

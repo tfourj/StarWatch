@@ -226,6 +226,11 @@ export interface Settings {
   server: { timezone: string; allowRegistration: boolean };
 }
 
+export interface SecurityStatus {
+  twoFactorEnabled: boolean;
+  hasPassword: boolean;
+}
+
 export type TunnelMode = "token" | "quick";
 export type TunnelState = "stopped" | "starting" | "connected" | "error";
 
