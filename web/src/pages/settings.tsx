@@ -6,6 +6,7 @@ import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { CloudflaredSettings } from "@/components/cloudflared-settings";
 import { SecuritySettings } from "@/components/security-settings";
+import { TimeSettings } from "@/components/time-settings";
 import { ConfirmDialog, ErrorNote, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -547,6 +548,8 @@ function AccountTab({ user }: { user: CurrentUser }) {
           </form>
         </CardContent>
       </Card>
+
+      <TimeSettings />
     </div>
   );
 }
