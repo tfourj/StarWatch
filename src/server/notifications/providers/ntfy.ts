@@ -1,4 +1,4 @@
-import { stripLinks } from "../../../shared/templates";
+import { stripMarkup } from "../../../shared/templates";
 import { optionalString, requireString, sendHttp, trimSlash } from "../http";
 import { listLinks, mainLink } from "../links";
 import type { NotificationProvider } from "../types";
@@ -15,7 +15,7 @@ export const ntfy: NotificationProvider = {
       json: {
         topic: requireString(config, "topic"),
         title: msg.title,
-        message: stripLinks(msg.body),
+        message: stripMarkup(msg.body),
         click: mainLink(config, msg)?.url,
         actions: actions.length ? actions : undefined,
         icon: (msg.kind === "star" && msg.vars.avatar) || undefined,

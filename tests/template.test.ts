@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { DEFAULT_TEMPLATES, formatLinks, hasLinks, parseLinks, stripLinks } from "../src/shared/templates";
+import { DEFAULT_TEMPLATES, formatMarkup, hasLinks, parseLinks, parseMarkup, stripMarkup } from "../src/shared/templates";
 import { formatEventTime, mergeTemplates, renderMessage, renderTemplate } from "../src/server/lib/template";
 import { buildVars } from "../src/server/notifications/worker";
 
@@ -55,16 +55,16 @@ describe("template links", () => {
   });
 
   test("formats links and plain text separately", () => {
-    const html = formatLinks("a < [b](https://x.dev/?q=1) >", {
+    const html = formatMarkup("a < [b](https://x.dev/?q=1) >", {
       text: (t) => t.replace(/</g, "&lt;").replace(/>/g, "&gt;"),
       link: (t, u) => `<a href="${u}">${t}</a>`,
     });
     expect(html).toBe('a &lt; <a href="https://x.dev/?q=1">b</a> &gt;');
   });
 
-  test("stripLinks keeps the link text", () => {
-    expect(stripLinks(text)).toBe("octocat starred me/project.");
-    expect(stripLinks("no links here")).toBe("no links here");
+  test("stripMarkup keeps the link text", () => {
+    expect(stripMarkup(text)).toBe("octocat starred me/project.");
+    expect(stripMarkup("no links here")).toBe("no links here");
   });
 
   test("renderMessage strips links from the title only", () => {
@@ -72,6 +72,51 @@ describe("template links", () => {
     const msg = renderMessage("created", t, vars);
     expect(msg.title).toBe("me/project");
     expect(msg.body).toBe("[octocat](https://github.com/octocat)");
+  });
+});
+
+describe("template bold", () => {
+  const html = (t: string) =>
+    formatMarkup(t, { link: (x, u) => `<a href="${u}">${x}</a>`, bold: (inner) => `<b>${inner}</b>` });
+
+  test("parses bold runs around links", () => {
+    expect(parseMarkup("**a [b](https://x.dev) c** d")).toEqual([
+      { text: "a ", bold: true },
+      { text: "b", url: "https://x.dev", bold: true },
+      { text: " c", bold: true },
+      { text: " d" },
+    ]);
+  });
+
+  test("wraps each bold run once", () => {
+    expect(html("**[octocat](https://github.com/octocat)** has **42** stars")).toBe(
+      '<b><a href="https://github.com/octocat">octocat</a></b> has <b>42</b> stars',
+    );
+  });
+
+  test("a link is bold when its whole text is", () => {
+    expect(html("[**octocat**](https://github.com/octocat)")).toBe(
+      '<b><a href="https://github.com/octocat">octocat</a></b>',
+    );
+  });
+
+  test("leaves markers that do not form bold text", () => {
+    const text = "** spaced ** and **** and a*b and **open\nclose**";
+    expect(html(text)).toBe(text);
+    expect(html("[a**b](https://x.dev/**y**)")).toBe('<a href="https://x.dev/**y**">a**b</a>');
+  });
+
+  test("stripMarkup drops the markers", () => {
+    expect(stripMarkup("**[octocat](https://github.com/octocat)** starred **me/project**.")).toBe(
+      "octocat starred me/project.",
+    );
+  });
+
+  test("renderMessage strips bold from the title only", () => {
+    const t = mergeTemplates({ starTitle: "**{repo}**", starBody: "**{user}**" });
+    const msg = renderMessage("created", t, vars);
+    expect(msg.title).toBe("me/project");
+    expect(msg.body).toBe("**octocat**");
   });
 });
 

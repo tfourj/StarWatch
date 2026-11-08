@@ -1,4 +1,4 @@
-import { formatLinks, hasLinks, parseLinks } from "../../shared/templates";
+import { formatMarkup, hasLinks, parseLinks } from "../../shared/templates";
 import { optionalString } from "./http";
 import type { ChannelConfig, NotificationMessage } from "./types";
 
@@ -36,15 +36,16 @@ export function listLinks(text: string): MainLink[] {
 export const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-/** Text with links as HTML anchors, everything else escaped. */
+/** Text with links as HTML anchors and bold as <b>, everything else escaped. */
 export function toHtml(text: string): string {
-  return formatLinks(text, {
+  return formatMarkup(text, {
     text: escapeHtml,
     link: (t, url) => `<a href="${escapeHtml(url)}">${escapeHtml(t)}</a>`,
+    bold: (inner) => `<b>${inner}</b>`,
   });
 }
 
 /** Text with each link written as "text (url)". */
 export function toPlainWithUrls(text: string): string {
-  return formatLinks(text, { link: (t, url) => `${t} (${url})` });
+  return formatMarkup(text, { link: (t, url) => `${t} (${url})` });
 }

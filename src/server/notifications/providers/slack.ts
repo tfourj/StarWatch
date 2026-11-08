@@ -1,4 +1,4 @@
-import { formatLinks } from "../../../shared/templates";
+import { formatMarkup } from "../../../shared/templates";
 import { requireString, sendHttp } from "../http";
 import { trailingLink } from "../links";
 import type { NotificationProvider } from "../types";
@@ -10,7 +10,7 @@ export const slack: NotificationProvider = {
   type: "slack",
   async send(config, msg) {
     const trailing = trailingLink(config, msg);
-    const body = formatLinks(msg.body, { text: escape, link });
+    const body = formatMarkup(msg.body, { text: escape, link, bold: (inner) => `*${inner}*` });
     const text = `*${escape(msg.title)}*\n${body}${trailing ? `\n${link(trailing.label, trailing.url)}` : ""}`;
     await sendHttp(requireString(config, "webhookUrl"), {
       json: {
