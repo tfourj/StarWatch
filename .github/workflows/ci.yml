@@ -54,6 +54,9 @@ jobs:
       PUSH: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Tags and history to count commits since the newest release.
+          fetch-depth: 0
 
       # Any build of a commit that carries the stable tag for package.json's version is a release build. A release
       # tag pushed while its commit is still the head of main also publishes :main.
@@ -74,9 +77,11 @@ jobs:
           fi
           main_sha="$(git ls-remote origin "refs/heads/$DEFAULT_BRANCH" | cut -f1)"
           if [ "$GITHUB_REF_TYPE" = tag ] && [ "$release" = true ] && [ "$main_sha" = "$SHA" ]; then main=true; fi
+          describe="$(git describe --tags --long --match 'v[0-9]*' --exclude '*-*' "$SHA" 2>/dev/null || true)"
           echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "describe=$describe" >> "$GITHUB_OUTPUT"
           echo "main=$main" >> "$GITHUB_OUTPUT"
-          echo "v$version release build: $release, head of $DEFAULT_BRANCH: $main"
+          echo "v$version release build: $release, head of $DEFAULT_BRANCH: $main, describe: ${describe:-none}"
 
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
@@ -120,5 +125,6 @@ jobs:
           build-args: |
             STARWATCH_COMMIT=${{ github.event.pull_request.head.sha || github.sha }}
             STARWATCH_RELEASE=${{ steps.release.outputs.release }}
+            STARWATCH_DESCRIBE=${{ steps.release.outputs.describe }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

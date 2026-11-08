@@ -13,6 +13,8 @@ export interface SetupStatus {
   version: string;
   /** Short commit for builds that are not a stable release, shown in place of the version. */
   commit: string | null;
+  /** Commits since the newest stable release, for builds that are not a stable release. */
+  ahead: { release: string; commits: number } | null;
 }
 
 export interface CurrentUser {

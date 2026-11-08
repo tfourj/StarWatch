@@ -193,7 +193,7 @@ function RepoLink() {
           {unseen && <span className="absolute top-1.5 right-0.5 size-1.5 rounded-full bg-star" />}
         </button>
       )}
-      <ChangelogDialog open={changelogOpen} currentVersion={version} onOpenChange={setChangelogOpen} />
+      <ChangelogDialog open={changelogOpen} status={setup} onOpenChange={setChangelogOpen} />
     </div>
   );
 }
