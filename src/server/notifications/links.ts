@@ -36,11 +36,12 @@ export function listLinks(text: string): MainLink[] {
 export const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-/** Text with links as HTML anchors, everything else escaped. */
+/** Text with links as HTML anchors and bold as <b>, everything else escaped. */
 export function toHtml(text: string): string {
   return formatMarkup(text, {
     text: escapeHtml,
     link: (t, url) => `<a href="${escapeHtml(url)}">${escapeHtml(t)}</a>`,
+    bold: (inner) => `<b>${inner}</b>`,
   });
 }
 
