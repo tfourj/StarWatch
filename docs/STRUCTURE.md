@@ -37,7 +37,7 @@ StarWatch/
 │   │   ├── lib/                Encryption, template rendering, small helpers
 │   │   ├── github/             GitHub REST client, rate limits, signatures, stargazer diffing, hooks
 │   │   ├── services/           Settings, repo sync, star event recording, polling, backfill, cloudflared tunnel
-│   │   ├── notifications/      Provider interface, providers, dispatcher and retry worker
+│   │   ├── notifications/      Provider interface, providers, link formatting, dispatcher and retry worker
 │   │   ├── jobs/               Background scheduler
 │   │   └── routes/             API route modules
 │   └── shared/                 Code shared by server and frontend (templates, channels, frequency, demo data)

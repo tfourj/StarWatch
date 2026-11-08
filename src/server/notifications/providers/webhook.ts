@@ -1,3 +1,4 @@
+import { stripLinks } from "../../../shared/templates";
 import { optionalString, requireString, sendHttp } from "../http";
 import { DeliveryError, type NotificationProvider } from "../types";
 
@@ -24,7 +25,8 @@ export const webhook: NotificationProvider = {
         action: msg.action,
         test: msg.isTest,
         title: msg.title,
-        message: msg.body,
+        message: stripLinks(msg.body),
+        message_markdown: msg.body,
         repository: { full_name: v.repo, url: v.repo_url, stars: Number(v.stars) },
         user: { login: v.user, url: v.user_url, avatar_url: v.avatar },
         time: msg.occurredAt.toISOString(),
