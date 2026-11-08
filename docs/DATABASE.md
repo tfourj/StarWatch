@@ -40,6 +40,9 @@ Values marked *encrypted* are AES-256-GCM ciphertext (key derived from `ENCRYPTI
 | `templates`                | JSON `{ starTitle, starBody, unstarTitle, unstarBody }` |
 | `login_alert_channels`     | JSON array of channel ids notified on sign-in   |
 | `seen_version`             | Last version the user saw release notes for     |
+| `timezone`                 | IANA timezone, null to use `TZ`                 |
+| `time_format`              | `auto`, `12h` or `24h`                          |
+| `time_style`               | `relative` or `absolute`                        |
 | `last_sync_at`             | Last repository and webhook sync                |
 | `last_poll_at`             | Last polling run                                |
 
