@@ -1,8 +1,9 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { twoFactor as twoFactorPlugin } from "better-auth/plugins";
 import type { AppConfig } from "../config";
 import type { DB } from "../db/client";
-import { account, session, user, verification } from "../db/schema";
+import { account, session, twoFactor, user, verification } from "../db/schema";
 import { logger } from "../logger";
 import { countUsers } from "./registration";
 
@@ -14,7 +15,7 @@ export function createAuth(db: DB, config: AppConfig) {
     baseURL: config.baseUrl,
     basePath: "/api/auth",
     secret: config.betterAuthSecret,
-    database: drizzleAdapter(db, { provider: "sqlite", schema: { user, session, account, verification } }),
+    database: drizzleAdapter(db, { provider: "sqlite", schema: { user, session, account, verification, twoFactor } }),
     trustedOrigins: [config.baseUrl],
     emailAndPassword: {
       enabled: true,
@@ -48,6 +49,10 @@ export function createAuth(db: DB, config: AppConfig) {
       useSecureCookies: config.baseUrl.startsWith("https://"),
       ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-real-ip", "x-forwarded-for"] },
     },
+    plugins: [
+      // Authenticator app codes with single-use backup codes. Only password sign-ins ask for a code.
+      twoFactorPlugin({ issuer: "StarWatch", backupCodeOptions: { amount: 10, length: 10 } }),
+    ],
     databaseHooks: {
       user: {
         create: {
