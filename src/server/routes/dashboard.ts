@@ -1,19 +1,18 @@
 import { and, count, desc, eq, gte, inArray, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AuthedEnv } from "../auth/middleware";
-import { getConfig } from "../config";
 import { getDb } from "../db/client";
 import { notificationDeliveries, repositories, stargazers, starEvents } from "../db/schema";
 import { getRateLimit } from "../github/client";
 import { dayKey, startOfDay } from "../lib/time";
-import { getUserSettings } from "../services/settings";
+import { getUserSettings, getUserTimeFormat } from "../services/settings";
 
 const DAY = 24 * 60 * 60_000;
 
 export const dashboard = new Hono<AuthedEnv>().get("/", (c) => {
   const userId = c.get("user").id;
   const db = getDb();
-  const tz = getConfig().timezone;
+  const tz = getUserTimeFormat(userId).timeZone;
   const now = new Date();
   const todayStart = startOfDay(now, tz);
   const chartStart = new Date(todayStart.getTime() - 29 * DAY);

@@ -1,5 +1,6 @@
 import { DEFAULT_TEMPLATES, renderTemplate, stripMarkup } from "../../shared/templates";
 import type { MessageTemplates, TemplateVars } from "../../shared/templates";
+import type { TimeFormat } from "../../shared/time";
 
 export { renderTemplate };
 
@@ -22,24 +23,27 @@ export function renderMessage(action: "created" | "deleted", templates: MessageT
 }
 
 /**
- * "7 Nov 2026, 19:00 UTC" in the given timezone. Built from parts because dateStyle cannot be combined with
- * timeZoneName, and engines disagree on the separator between date and time.
+ * "7 Nov 2026, 19:00 UTC" (or "7:00 pm" for 12-hour time) in the given timezone. Built from parts because dateStyle
+ * cannot be combined with timeZoneName, and engines disagree on the separator between date and time. "auto" uses
+ * 24-hour time since the server does not know the reader's locale.
  */
-export function formatEventTime(date: Date, timeZone: string): string {
+export function formatEventTime(date: Date, timeZone: string, timeFormat: TimeFormat = "auto"): string {
+  const twelve = timeFormat === "12h";
   try {
     const parts = new Intl.DateTimeFormat("en-GB", {
       day: "numeric",
       month: "short",
       year: "numeric",
-      hour: "2-digit",
+      hour: twelve ? "numeric" : "2-digit",
       minute: "2-digit",
-      hourCycle: "h23",
+      hourCycle: twelve ? "h12" : "h23",
       timeZone,
       timeZoneName: "short",
     }).formatToParts(date);
     const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? "";
     const day = `${get("day")} ${get("month")} ${get("year")}`;
-    return `${day}, ${get("hour")}:${get("minute")} ${get("timeZoneName")}`.trim();
+    const clock = `${get("hour")}:${get("minute")}${twelve ? ` ${get("dayPeriod")}` : ""}`;
+    return `${day}, ${clock} ${get("timeZoneName")}`.trim();
   } catch {
     return date.toISOString();
   }
