@@ -29,8 +29,9 @@ requests from forks are built but not published.
 | `pr-<number>`              | Every push to that pull request              |
 
 The version label in the sidebar shows the version for any build of a stable release commit, including `main`,
-`preview` and `pr-<number>` images of that commit, and the short commit for every other build. A tag pushed while
-its commit is still the head of `main` also updates `main`.
+`preview` and `pr-<number>` images of that commit, and the short commit for every other build. For those, the
+"What's new" dialog also shows how many commits the build is ahead of the newest release tag. A tag pushed while its
+commit is still the head of `main` also updates `main`.
 
 To release, bump `version` in `package.json`, add the release to `CHANGELOG.md`, commit, then tag and push:
 
