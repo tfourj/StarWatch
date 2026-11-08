@@ -49,8 +49,9 @@ export function loginAlertsPlugin(onSignIn: (signIn: SignIn) => void): BetterAut
             onSignIn({
               userId: created.user.id,
               method,
-              ip: created.session.ipAddress ?? null,
-              userAgent: created.session.userAgent ?? null,
+              // Better Auth stores "" when no client IP header is present.
+              ip: created.session.ipAddress || null,
+              userAgent: created.session.userAgent || null,
               at: new Date(created.session.createdAt),
             });
           }),
