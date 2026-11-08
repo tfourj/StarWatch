@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseLinks, renderTemplate, stripLinks, TEMPLATE_VARIABLES, type MessageTemplates } from "@shared/templates";
-import { CheckCircle2, Copy, ExternalLink, KeyRound, Plus, RefreshCw, Trash2, UserCog } from "lucide-react";
+import { CheckCircle2, Copy, ExternalLink, KeyRound, Plus, RefreshCw, ShieldOff, Trash2, UserCog } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -701,12 +701,23 @@ function UsersTab() {
   const [creating, setCreating] = useState(false);
   const [resetting, setResetting] = useState<ManagedUser | null>(null);
   const [deleting, setDeleting] = useState<ManagedUser | null>(null);
+  const [resettingTwoFactor, setResettingTwoFactor] = useState<ManagedUser | null>(null);
 
   const setRole = useMutation({
     mutationFn: ({ id, role }: { id: string; role: Role }) => api.patch(`/users/${id}`, { role }),
     onSuccess: () => {
       toast.success("Role updated");
       void queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
+  const resetTwoFactor = useMutation({
+    mutationFn: (id: string) => api.post(`/users/${id}/two-factor/reset`),
+    onSuccess: () => {
+      toast.success("Two-factor authentication turned off");
+      setResettingTwoFactor(null);
+      void queryClient.invalidateQueries({ queryKey: ["users"] });
+      void queryClient.invalidateQueries({ queryKey: ["security"] });
     },
     onError: (err) => toast.error(errorMessage(err)),
   });
@@ -757,7 +768,10 @@ function UsersTab() {
                   </TableCell>
                   <TableCell>{u.email}</TableCell>
                   <TableCell>
-                    <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge>
+                    <div className="flex gap-1">
+                      <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge>
+                      {u.twoFactorEnabled && <Badge variant="outline">2FA</Badge>}
+                    </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{formatDateTime(u.createdAt)}</TableCell>
                   <TableCell className="pr-6 text-right">
@@ -778,6 +792,12 @@ function UsersTab() {
                           <KeyRound />
                           Reset password
                         </DropdownMenuItem>
+                        {u.twoFactorEnabled && (
+                          <DropdownMenuItem onSelect={() => setResettingTwoFactor(u)}>
+                            <ShieldOff />
+                            Turn off 2FA
+                          </DropdownMenuItem>
+                        )}
                         {!u.isSelf && (
                           <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(u)}>
                             <Trash2 />
@@ -796,6 +816,16 @@ function UsersTab() {
 
       <CreateUserDialog open={creating} onClose={() => setCreating(false)} />
       <ResetPasswordDialog user={resetting} onClose={() => setResetting(null)} />
+      <ConfirmDialog
+        open={Boolean(resettingTwoFactor)}
+        onOpenChange={(o) => !o && setResettingTwoFactor(null)}
+        title={`Turn off 2FA for ${resettingTwoFactor?.email}?`}
+        description="They can sign in with their password alone until they set it up again."
+        confirmLabel="Turn off"
+        destructive
+        pending={resetTwoFactor.isPending}
+        onConfirm={() => resettingTwoFactor && resetTwoFactor.mutate(resettingTwoFactor.id)}
+      />
       <ConfirmDialog
         open={Boolean(deleting)}
         onOpenChange={(o) => !o && setDeleting(null)}
