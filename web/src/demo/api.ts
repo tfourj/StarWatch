@@ -28,6 +28,7 @@ export function setDemoLatency(ms: number) {
 }
 const DEMO_USER_ID = "demo-admin";
 const VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.0.0";
+const COMMIT = typeof __APP_COMMIT__ !== "undefined" ? __APP_COMMIT__ : null;
 
 type Body = Record<string, unknown>;
 
@@ -758,7 +759,7 @@ const ROUTES: [string, RegExp, Handler][] = [
   [
     "GET",
     /^\/setup\/status$/,
-    () => ({ needsSetup: false, registrationOpen: false, githubOAuth: false, version: VERSION }),
+    () => ({ needsSetup: false, registrationOpen: false, githubOAuth: false, version: VERSION, commit: COMMIT }),
   ],
   [
     "GET",
