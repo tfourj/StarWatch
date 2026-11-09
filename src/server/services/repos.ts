@@ -6,6 +6,7 @@ import { ensureHook, removeHook, type HookResult } from "../github/hooks";
 import { withLock } from "../lib/locks";
 import { logger } from "../logger";
 import { backfillRepository, markImportQueued } from "./backfill";
+import { reconcileStargazers, trackedStargazerCount } from "./polling";
 import { getGithubClient, getUserSettings, getWebhookSecret, getWebhookUrl, updateUserSettings } from "./settings";
 
 const log = logger.child("sync");
@@ -18,6 +19,10 @@ export interface SyncSummary {
   hooksRepaired: number;
   hooksDeleted: number;
   hookErrors: number;
+  /** Webhook-only repos whose stored stargazers were compared with GitHub because the counts differed. */
+  reconciled: number;
+  /** Stars and unstars found by those comparisons. */
+  reconciledEvents: number;
 }
 
 export function wantsWebhook(repo: Repository): boolean {
@@ -83,6 +88,8 @@ export function syncRepositories(userId: string): Promise<SyncSummary> {
       hooksRepaired: 0,
       hooksDeleted: 0,
       hookErrors: 0,
+      reconciled: 0,
+      reconciledEvents: 0,
     };
 
     try {
@@ -138,6 +145,30 @@ export function syncRepositories(userId: string): Promise<SyncSummary> {
         if (result.action === "repaired") summary.hooksRepaired++;
         if (result.action === "deleted") summary.hooksDeleted++;
         if (result.status === "error") summary.hookErrors++;
+      }
+
+      // Polling covers its own repos. Webhook-only repos are checked here, because GitHub sends no webhook
+      // when it drops stars itself (deleted or spam-flagged accounts) or when a delivery is lost.
+      for (const repo of repos) {
+        if (!repo.monitored || !repo.backfilledAt || repo.mode !== "webhook") continue;
+        if (repo.starCount === trackedStargazerCount(repo.id)) continue;
+        if (client.shouldBackOff(3)) {
+          log.warn("rate limit low, the next sync will compare the remaining stargazers", { userId });
+          break;
+        }
+        try {
+          const result = await reconcileStargazers(client, repo, repo.starCount, "sync");
+          if (result) {
+            summary.reconciled++;
+            summary.reconciledEvents += result.events;
+          }
+        } catch (err) {
+          log.warn("stargazer reconcile failed", {
+            repo: repo.fullName,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          if (err instanceof GitHubRateLimitError) break;
+        }
       }
 
       updateUserSettings(userId, { lastSyncAt: new Date(), lastSyncError: null });
