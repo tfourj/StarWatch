@@ -90,6 +90,9 @@ function useRepoMutations() {
       if (s.hooksCreated) parts.push(`${s.hooksCreated} webhooks created`);
       if (s.hooksRepaired) parts.push(`${s.hooksRepaired} repaired`);
       if (s.hooksDeleted) parts.push(`${s.hooksDeleted} removed`);
+      if (s.reconciledEvents) {
+        parts.push(`${s.reconciledEvents} missed ${s.reconciledEvents === 1 ? "star change" : "star changes"} found`);
+      }
       toast.success(`Sync complete: ${parts.join(", ")}`);
       if (s.hookErrors) toast.warning(`${s.hookErrors} webhooks have problems`);
       invalidate();
