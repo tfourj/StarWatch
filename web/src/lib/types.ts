@@ -128,6 +128,8 @@ export interface SyncSummary {
   hooksRepaired: number;
   hooksDeleted: number;
   hookErrors: number;
+  reconciled: number;
+  reconciledEvents: number;
 }
 
 export interface Stargazer {

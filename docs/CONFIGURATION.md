@@ -21,7 +21,10 @@ longer work, so a scoped token is required.
 **Webhooks (default).** Each monitored repo gets a webhook for the `star` event pointing at
 `BASE_URL/api/webhooks/github`. Deliveries are verified with `X-Hub-Signature-256` against a per-install secret and
 deduplicated by `X-GitHub-Delivery`. The background sync (hourly, and on **Sync webhooks**) lists your repos, creates
-missing hooks, repairs changed or failing ones and removes hooks from repos you stop monitoring.
+missing hooks, repairs changed or failing ones and removes hooks from repos you stop monitoring. It also compares
+each webhook-only repo's `stargazers_count` with the stored stargazers. When they differ, it fetches the stargazer
+list and records the stars and unstars that never arrived as a webhook. This covers lost deliveries and stars GitHub
+removes on its own, for example when an account is deleted or flagged as spam, which send no webhook.
 
 **Polling.** Every polling interval (default 15 minutes) StarWatch reads `stargazers_count` for your repos in one
 request per 100 repos. Only when a count differs from the stored stargazers does it fetch the newest stargazer pages
@@ -161,6 +164,7 @@ version restarts the tunnel. With `CLOUDFLARED_PATH` set, StarWatch uses that bi
 ## Limitations
 
 - Polling compares counts, so a star and an unstar between two polls cancel out and are missed. Webhooks catch both.
+  The same applies to the sync check on webhook-only repos.
 - GitHub lists at most 40,000 stargazers per repo. Larger repos are imported partially and should use webhook mode.
 - Removing the GitHub token or deleting a user leaves existing webhooks on GitHub. Disable monitoring first to remove
   them.
