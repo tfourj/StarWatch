@@ -44,6 +44,8 @@ interface FormState {
   repoIds: number[];
   notifyStar: boolean;
   notifyUnstar: boolean;
+  notifyFollow: boolean;
+  notifyUnfollow: boolean;
   frequencyMode: FrequencyMode;
   milestoneEvery: string;
   tiers: TierDraft[];
@@ -74,6 +76,8 @@ function initialState(channel: Channel | null): FormState {
       repoIds: channel.repoIds,
       notifyStar: channel.notifyStar,
       notifyUnstar: channel.notifyUnstar,
+      notifyFollow: channel.notifyFollow,
+      notifyUnfollow: channel.notifyUnfollow,
       frequencyMode: channel.frequencyTiers?.length ? "dynamic" : channel.milestoneEvery ? "milestone" : "every",
       milestoneEvery: channel.milestoneEvery ? String(channel.milestoneEvery) : "",
       tiers: channel.frequencyTiers?.length
@@ -91,6 +95,8 @@ function initialState(channel: Channel | null): FormState {
     repoIds: [],
     notifyStar: true,
     notifyUnstar: true,
+    notifyFollow: true,
+    notifyUnfollow: true,
     frequencyMode: "every",
     milestoneEvery: "",
     tiers: defaultTierDrafts(),
@@ -226,6 +232,8 @@ function ChannelDialog({
       repoIds: form.repoIds,
       notifyStar: form.notifyStar,
       notifyUnstar: form.notifyUnstar,
+      notifyFollow: form.notifyFollow,
+      notifyUnfollow: form.notifyUnfollow,
       milestoneEvery: form.frequencyMode === "milestone" && form.milestoneEvery ? Number(form.milestoneEvery) : null,
       frequencyTiers:
         form.frequencyMode === "dynamic"
@@ -318,6 +326,26 @@ function ChannelDialog({
                   Unstars
                 </Label>
               </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="notify-follow"
+                  checked={form.notifyFollow}
+                  onCheckedChange={(v) => set("notifyFollow", v === true)}
+                />
+                <Label htmlFor="notify-follow" className="font-normal">
+                  New followers
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="notify-unfollow"
+                  checked={form.notifyUnfollow}
+                  onCheckedChange={(v) => set("notifyUnfollow", v === true)}
+                />
+                <Label htmlFor="notify-unfollow" className="font-normal">
+                  Unfollows
+                </Label>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -406,12 +434,25 @@ function ChannelDialog({
   );
 }
 
+function describePair(on: [boolean, boolean], labels: [string, string, string]) {
+  if (on[0] && on[1]) return labels[0];
+  if (on[0]) return labels[1];
+  return on[1] ? labels[2] : null;
+}
+
 function describeFilters(channel: Channel) {
+  const stars = describePair(
+    [channel.notifyStar, channel.notifyUnstar],
+    ["Stars and unstars", "Stars only", "Unstars only"],
+  );
+  const follows = describePair(
+    [channel.notifyFollow, channel.notifyUnfollow],
+    ["follows and unfollows", "follows only", "unfollows only"],
+  );
   const parts: string[] = [];
-  if (channel.notifyStar && channel.notifyUnstar) parts.push("Stars and unstars");
-  else if (channel.notifyStar) parts.push("Stars only");
-  else if (channel.notifyUnstar) parts.push("Unstars only");
-  else parts.push("No events");
+  if (stars) parts.push(stars);
+  if (follows) parts.push(stars ? follows : follows.charAt(0).toUpperCase() + follows.slice(1));
+  if (!stars && !follows) parts.push("No events");
   if (channel.milestoneEvery) parts.push(`every ${channel.milestoneEvery} stars`);
   if (channel.frequencyTiers?.length) parts.push("dynamic frequency");
   parts.push(channel.allRepos ? "all repositories" : `${channel.repoIds.length} repositories`);

@@ -208,6 +208,8 @@ export interface Channel {
   allRepos: boolean;
   notifyStar: boolean;
   notifyUnstar: boolean;
+  notifyFollow: boolean;
+  notifyUnfollow: boolean;
   milestoneEvery: number | null;
   frequencyTiers: FrequencyTier[] | null;
   templates: Partial<MessageTemplates> | null;
