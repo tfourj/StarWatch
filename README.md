@@ -21,6 +21,7 @@
 - Webhooks are created and repaired automatically
 - Optional built-in Cloudflare Tunnel, so webhooks work without a reverse proxy
 - Notifications for stars, unstars or only milestones (every 10, 100 ... stars)
+- Follower tracking with alerts when someone follows or unfollows your GitHub account
 - Custom message templates
 - Dashboard with stats, chart and event log
 - Two-factor authentication and login alerts on your channels
@@ -32,8 +33,10 @@
 | Dashboard | Repositories |
 | --- | --- |
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Repositories](docs/screenshots/repositories.png) |
-| **Events** | **Channels** |
-| ![Events](docs/screenshots/events.png) | ![Channels](docs/screenshots/channels.png) |
+| **Followers** | **Events** |
+| ![Followers](docs/screenshots/followers.png) | ![Events](docs/screenshots/events.png) |
+| **Channels** | |
+| ![Channels](docs/screenshots/channels.png) | |
 
 ## Tech Stack
 

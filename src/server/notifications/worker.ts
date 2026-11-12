@@ -5,6 +5,8 @@ import { getDb } from "../db/client";
 import {
   channels,
   deliveryAttempts,
+  followerDeliveries,
+  followerEvents,
   notificationDeliveries,
   repositories,
   starEvents,
@@ -15,7 +17,8 @@ import {
 import { formatEventTime, mergeTemplates, renderMessage } from "../lib/template";
 import { logger } from "../logger";
 import { decryptChannelConfig } from "../services/channels";
-import { getUserTemplates, getUserTimeFormat } from "../services/settings";
+import { getUserSettings, getUserTemplates, getUserTimeFormat } from "../services/settings";
+import { buildFollowMessage } from "./follow-message";
 import { getProvider } from "./providers";
 import type { NotificationMessage, StarMessage } from "./types";
 
@@ -75,6 +78,50 @@ export async function sendToChannel(channel: Channel, message: NotificationMessa
   await provider.send(decryptChannelConfig(channel), message);
 }
 
+type DeliveryUpdate = Pick<
+  typeof notificationDeliveries.$inferInsert,
+  "status" | "attempts" | "lastError" | "nextAttemptAt" | "deliveredAt"
+>;
+
+/** Send one message and time it. Disabled channels fail without sending. */
+async function trySend(channel: Channel, build: () => NotificationMessage) {
+  const started = Date.now();
+  let error: string | null = null;
+  if (!channel.enabled) {
+    error = "Channel disabled";
+  } else {
+    try {
+      await sendToChannel(channel, build());
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+    }
+  }
+  return { error, durationMs: Date.now() - started };
+}
+
+/** The delivery row after attempt number `attempt`: delivered, retried later, or given up. */
+function deliveryUpdate(attempt: number, error: string | null, channel: Channel): DeliveryUpdate {
+  if (error === null) {
+    return { status: "success", attempts: attempt, lastError: null, deliveredAt: new Date(), nextAttemptAt: null };
+  }
+  const giveUp = attempt >= MAX_ATTEMPTS || !channel.enabled;
+  const nextAttemptAt = giveUp ? null : new Date(Date.now() + backoffMs(attempt));
+  return { status: giveUp ? "failed" : "retrying", attempts: attempt, lastError: error, nextAttemptAt };
+}
+
+function logDelivery(deliveryId: number, channel: Channel, update: DeliveryUpdate, durationMs: number) {
+  const meta = { deliveryId, channel: channel.name, type: channel.type, attempt: update.attempts };
+  if (update.status === "success") {
+    log.info("delivered", { ...meta, durationMs });
+    return;
+  }
+  log.warn("delivery failed", {
+    ...meta,
+    error: update.lastError,
+    nextAttemptAt: update.nextAttemptAt?.toISOString() ?? null,
+  });
+}
+
 async function attemptDelivery(deliveryId: number) {
   const db = getDb();
   const row = db
@@ -88,45 +135,47 @@ async function attemptDelivery(deliveryId: number) {
   if (!row) return;
 
   const attempt = row.delivery.attempts + 1;
-  const started = Date.now();
-  let error: string | null = null;
-
-  if (!row.channel.enabled) {
-    error = "Channel disabled";
-  } else {
-    try {
-      await sendToChannel(row.channel, buildMessage(row.channel, row.event, row.repo));
-    } catch (err) {
-      error = err instanceof Error ? err.message : String(err);
-    }
-  }
-
-  const durationMs = Date.now() - started;
+  const { error, durationMs } = await trySend(row.channel, () => buildMessage(row.channel, row.event, row.repo));
   db.insert(deliveryAttempts).values({ deliveryId, attempt, success: error === null, error, durationMs }).run();
 
-  if (error === null) {
-    db.update(notificationDeliveries)
-      .set({ status: "success", attempts: attempt, lastError: null, deliveredAt: new Date(), nextAttemptAt: null })
-      .where(eq(notificationDeliveries.id, deliveryId))
-      .run();
-    log.info("delivered", { deliveryId, channel: row.channel.name, type: row.channel.type, attempt, durationMs });
-    return;
-  }
+  const update = deliveryUpdate(attempt, error, row.channel);
+  db.update(notificationDeliveries).set(update).where(eq(notificationDeliveries.id, deliveryId)).run();
+  logDelivery(deliveryId, row.channel, update, durationMs);
+}
 
-  const giveUp = attempt >= MAX_ATTEMPTS || !row.channel.enabled;
-  const nextAttemptAt = giveUp ? null : new Date(Date.now() + backoffMs(attempt));
-  db.update(notificationDeliveries)
-    .set({ status: giveUp ? "failed" : "retrying", attempts: attempt, lastError: error, nextAttemptAt })
-    .where(eq(notificationDeliveries.id, deliveryId))
-    .run();
-  log.warn("delivery failed", {
-    deliveryId,
-    channel: row.channel.name,
-    type: row.channel.type,
-    attempt,
-    error,
-    nextAttemptAt: nextAttemptAt?.toISOString() ?? null,
+async function attemptFollowerDelivery(deliveryId: number) {
+  const db = getDb();
+  const row = db
+    .select({ delivery: followerDeliveries, event: followerEvents, channel: channels })
+    .from(followerDeliveries)
+    .innerJoin(followerEvents, eq(followerEvents.id, followerDeliveries.eventId))
+    .innerJoin(channels, eq(channels.id, followerDeliveries.channelId))
+    .where(eq(followerDeliveries.id, deliveryId))
+    .get();
+  if (!row) return;
+
+  const attempt = row.delivery.attempts + 1;
+  const { error, durationMs } = await trySend(row.channel, () => {
+    const account = getUserSettings(row.event.userId).githubLogin ?? "";
+    return buildFollowMessage(row.event, account, getUserTimeFormat(row.event.userId));
   });
+
+  const update = deliveryUpdate(attempt, error, row.channel);
+  db.update(followerDeliveries).set(update).where(eq(followerDeliveries.id, deliveryId)).run();
+  logDelivery(deliveryId, row.channel, update, durationMs);
+}
+
+const BATCH = 50;
+
+function dueIds(table: typeof notificationDeliveries | typeof followerDeliveries) {
+  return getDb()
+    .select({ id: table.id })
+    .from(table)
+    .where(and(inArray(table.status, ["pending", "retrying"]), lte(table.nextAttemptAt, new Date())))
+    .orderBy(table.nextAttemptAt)
+    .limit(BATCH)
+    .all()
+    .map((r) => r.id);
 }
 
 let running = false;
@@ -142,20 +191,11 @@ export async function processDueDeliveries(): Promise<void> {
   try {
     do {
       rerun = false;
-      const due = getDb()
-        .select({ id: notificationDeliveries.id })
-        .from(notificationDeliveries)
-        .where(
-          and(
-            inArray(notificationDeliveries.status, ["pending", "retrying"]),
-            lte(notificationDeliveries.nextAttemptAt, new Date()),
-          ),
-        )
-        .orderBy(notificationDeliveries.nextAttemptAt)
-        .limit(50)
-        .all();
-      for (const { id } of due) await attemptDelivery(id);
-      if (due.length === 50) rerun = true;
+      const stars = dueIds(notificationDeliveries);
+      for (const id of stars) await attemptDelivery(id);
+      const follows = dueIds(followerDeliveries);
+      for (const id of follows) await attemptFollowerDelivery(id);
+      if (stars.length === BATCH || follows.length === BATCH) rerun = true;
     } while (rerun);
   } catch (err) {
     log.error("delivery worker error", { err });
@@ -166,6 +206,16 @@ export async function processDueDeliveries(): Promise<void> {
 
 export function kickWorker() {
   queueMicrotask(() => void processDueDeliveries());
+}
+
+/** Re-queue a failed follower delivery right away. */
+export function retryFollowerDelivery(deliveryId: number) {
+  getDb()
+    .update(followerDeliveries)
+    .set({ status: "retrying", nextAttemptAt: new Date() })
+    .where(eq(followerDeliveries.id, deliveryId))
+    .run();
+  kickWorker();
 }
 
 /** Re-queue a failed delivery right away. */

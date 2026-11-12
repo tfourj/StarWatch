@@ -7,6 +7,7 @@ import {
   DEMO_USER,
   DEMO_WEBHOOK_BASE_URL,
   generateDemoData,
+  type DemoDelivery,
 } from "../../src/shared/demo-data";
 
 const BASE = "http://localhost:4321";
@@ -28,11 +29,18 @@ const userId = (db.query("select id from user").get() as { id: string }).id;
 const data = generateDemoData(now);
 const ms = (date: Date | null) => (date ? date.getTime() : null);
 
+/** Screenshots show every delivery as sent, so the README has no failed or retrying badges. */
+function delivered<T extends DemoDelivery>(d: T, occurredAt: Date): T {
+  const deliveredAt = new Date(occurredAt.getTime() + 2000);
+  return { ...d, status: "success", attempts: 1, lastError: null, nextAttemptAt: null, deliveredAt };
+}
+
 db.run(
   `insert or replace into user_settings
      (user_id, github_token, github_token_hint, github_login, github_scopes,
-      github_token_checked_at, last_sync_at, last_poll_at)
-   values (?, ?, ?, ?, ?, ?, ?, ?)`,
+      github_token_checked_at, last_sync_at, last_poll_at, followers_enabled, follower_count,
+      followers_imported_at, followers_checked_at)
+   values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   [
     userId,
     cipher.encrypt("ghp_demo"),
@@ -42,6 +50,10 @@ db.run(
     now - 120 * MINUTE,
     now - 4 * MINUTE,
     now - 6 * MINUTE,
+    1,
+    data.followers.length,
+    now - 31 * 24 * 60 * MINUTE,
+    now - 3 * MINUTE,
   ],
 );
 db.run("insert or replace into app_settings (key, value) values ('webhook_base_url', ?)", [DEMO_WEBHOOK_BASE_URL]);
@@ -69,14 +81,15 @@ db.transaction(() => {
 
 const insertChannel = db.prepare(
   `insert into channels
-     (id, user_id, name, type, config, enabled, all_repos, notify_star, notify_unstar, milestone_every,
-      frequency_tiers)
-   values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, user_id, name, type, config, enabled, all_repos, notify_star, notify_unstar, notify_follow,
+      notify_unfollow, milestone_every, frequency_tiers)
+   values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 for (const c of data.channels) {
   insertChannel.run(
     c.id, userId, c.name, c.type, cipher.encryptJson(c.config), c.enabled ? 1 : 0, c.allRepos ? 1 : 0,
-    c.notifyStar ? 1 : 0, c.notifyUnstar ? 1 : 0, c.milestoneEvery,
+    c.notifyStar ? 1 : 0, c.notifyUnstar ? 1 : 0, c.notifyFollow ? 1 : 0, c.notifyUnfollow ? 1 : 0,
+    c.milestoneEvery,
     c.frequencyTiers ? JSON.stringify(c.frequencyTiers) : null,
   );
 }
@@ -102,8 +115,40 @@ const insertDelivery = db.prepare(
      (id, event_id, channel_id, status, attempts, last_error, next_attempt_at, delivered_at)
    values (?, ?, ?, ?, ?, ?, ?, ?)`,
 );
-for (const d of data.deliveries) {
+const eventTimes = new Map(data.events.map((e) => [e.id, e.occurredAt]));
+for (const raw of data.deliveries) {
+  const d = delivered(raw, eventTimes.get(raw.eventId)!);
   insertDelivery.run(
+    d.id, d.eventId, d.channelId, d.status, d.attempts, d.lastError, ms(d.nextAttemptAt), ms(d.deliveredAt),
+  );
+}
+
+const insertFollower = db.prepare("insert into followers values (?, ?, ?, ?, ?)");
+db.transaction(() => {
+  for (const f of data.followers) insertFollower.run(userId, f.githubUserId, f.login, f.avatarUrl, ms(f.followedAt));
+})();
+
+const insertFollowerEvent = db.prepare(
+  `insert into follower_events
+     (id, user_id, action, actor_id, actor_login, actor_avatar_url, actor_url, follower_count, occurred_at)
+   values (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+for (const e of data.followerEvents) {
+  insertFollowerEvent.run(
+    e.id, userId, e.action, e.actorId, e.actorLogin, e.actorAvatarUrl, e.actorUrl, e.followerCount,
+    ms(e.occurredAt),
+  );
+}
+
+const insertFollowerDelivery = db.prepare(
+  `insert into follower_deliveries
+     (id, event_id, channel_id, status, attempts, last_error, next_attempt_at, delivered_at)
+   values (?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+const followerEventTimes = new Map(data.followerEvents.map((e) => [e.id, e.occurredAt]));
+for (const raw of data.followerDeliveries) {
+  const d = delivered(raw, followerEventTimes.get(raw.eventId)!);
+  insertFollowerDelivery.run(
     d.id, d.eventId, d.channelId, d.status, d.attempts, d.lastError, ms(d.nextAttemptAt), ms(d.deliveredAt),
   );
 }

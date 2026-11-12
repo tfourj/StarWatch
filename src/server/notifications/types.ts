@@ -33,7 +33,17 @@ export interface LoginMessage extends BaseMessage {
   link: { url: string; label: string };
 }
 
-export type NotificationMessage = StarMessage | LoginMessage;
+/** Someone followed or unfollowed the GitHub account the token belongs to. */
+export interface FollowMessage extends BaseMessage {
+  kind: "follow";
+  action: "followed" | "unfollowed";
+  /** Follower count right after the event. */
+  followers: number;
+  /** The tracked GitHub account and its followers page. */
+  account: { login: string; url: string };
+}
+
+export type NotificationMessage = StarMessage | LoginMessage | FollowMessage;
 
 export interface NotificationProvider {
   type: string;

@@ -1,7 +1,15 @@
 import { eq } from "drizzle-orm";
 import { notifiesAt } from "../../shared/frequency";
 import { getDb } from "../db/client";
-import { channels, notificationDeliveries, repositoryChannels, type Channel, type StarEvent } from "../db/schema";
+import {
+  channels,
+  followerDeliveries,
+  notificationDeliveries,
+  repositoryChannels,
+  type Channel,
+  type FollowerEvent,
+  type StarEvent,
+} from "../db/schema";
 import { logger } from "../logger";
 import { kickWorker } from "./worker";
 
@@ -53,6 +61,36 @@ export function enqueueDeliveries(event: StarEvent): number {
     .run();
 
   log.debug("deliveries queued", { eventId: event.id, channels: targets.map((c) => c.id) });
+  kickWorker();
+  return targets.length;
+}
+
+/** Follower alerts are not tied to a repository, so only the follow filters apply. */
+export function followChannelMatches(
+  channel: Pick<Channel, "enabled" | "notifyFollow" | "notifyUnfollow">,
+  event: Pick<FollowerEvent, "action">,
+): boolean {
+  if (!channel.enabled) return false;
+  return event.action === "followed" ? channel.notifyFollow : channel.notifyUnfollow;
+}
+
+export function enqueueFollowerDeliveries(event: FollowerEvent): number {
+  const db = getDb();
+  const targets = db
+    .select()
+    .from(channels)
+    .where(eq(channels.userId, event.userId))
+    .all()
+    .filter((c) => followChannelMatches(c, event));
+  if (targets.length === 0) return 0;
+
+  const now = new Date();
+  db.insert(followerDeliveries)
+    .values(targets.map((c) => ({ eventId: event.id, channelId: c.id, status: "pending" as const, nextAttemptAt: now })))
+    .onConflictDoNothing()
+    .run();
+
+  log.debug("follower deliveries queued", { eventId: event.id, channels: targets.map((c) => c.id) });
   kickWorker();
   return targets.length;
 }

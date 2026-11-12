@@ -33,7 +33,7 @@ export function buildMail(config: ChannelConfig, msg: NotificationMessage, logo:
       `<td style="vertical-align:middle;font-size:14px;font-weight:600;color:#555">StarWatch</td>` +
       `</tr></table>`
     : "";
-  const avatar = msg.kind === "star" && v.avatar
+  const avatar = msg.kind !== "login" && v.avatar
     ? `<td style="padding-right:16px;vertical-align:top;width:48px">` +
       `<img src="${escapeHtml(v.avatar)}" width="48" height="48" alt="" style="display:block;border-radius:50%" /></td>`
     : "";

@@ -36,7 +36,7 @@ StarWatch/
 │   │   ├── auth/               Better Auth and two-factor setup, login alert hook, registration, sessions
 │   │   ├── lib/                Encryption, template rendering, build info, small helpers
 │   │   ├── github/             GitHub REST client, rate limits, signatures, stargazer diffing, hooks
-│   │   ├── services/           Settings, repo sync, star events, polling, backfill, login alerts, cloudflared tunnel
+│   │   ├── services/           Settings, repo sync, star events, polling, backfill, followers, login alerts, tunnel
 │   │   ├── notifications/      Provider interface, providers, link formatting, dispatcher and retry worker
 │   │   ├── jobs/               Background scheduler
 │   │   └── routes/             API route modules
@@ -55,6 +55,6 @@ StarWatch/
 │       ├── demo/               In-browser fake API for the static demo build
 │       ├── components/repos/   Repository dialogs (add repositories, stargazers)
 │       ├── components/         Layout, sidebar, shared widgets
-│       └── pages/              Dashboard, Repositories, Events, Channels, Logs, Settings, auth pages
+│       └── pages/              Dashboard, Repositories, Followers, Events, Channels, Logs, Settings, auth pages
 └── tests/                      bun test suites
 ```

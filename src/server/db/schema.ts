@@ -119,6 +119,14 @@ export const userSettings = sqliteTable("user_settings", {
   lastSyncAt: integer("last_sync_at", { mode: "timestamp_ms" }),
   lastSyncError: text("last_sync_error"),
   lastPollAt: integer("last_poll_at", { mode: "timestamp_ms" }),
+  /** Track followers of the token's GitHub account. */
+  followersEnabled: integer("followers_enabled", { mode: "boolean" }).notNull().default(false),
+  /** Last known follower count from GitHub. */
+  followerCount: integer("follower_count").notNull().default(0),
+  /** Set after the silent initial follower import. */
+  followersImportedAt: integer("followers_imported_at", { mode: "timestamp_ms" }),
+  followersCheckedAt: integer("followers_checked_at", { mode: "timestamp_ms" }),
+  followersError: text("followers_error"),
   ...timestamps,
 });
 
@@ -209,6 +217,44 @@ export const starEvents = sqliteTable(
   ],
 );
 
+/* ------------------------------- Followers ----------------------------- */
+
+export const followers = sqliteTable(
+  "followers",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    githubUserId: integer("github_user_id").notNull(),
+    login: text("login").notNull(),
+    avatarUrl: text("avatar_url"),
+    /** When StarWatch first saw the follow, null for followers from the initial import. */
+    followedAt: integer("followed_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.githubUserId] })],
+);
+
+export const FOLLOW_ACTIONS = ["followed", "unfollowed"] as const;
+
+export const followerEvents = sqliteTable(
+  "follower_events",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    action: text("action", { enum: FOLLOW_ACTIONS }).notNull(),
+    actorId: integer("actor_id").notNull(),
+    actorLogin: text("actor_login").notNull(),
+    actorAvatarUrl: text("actor_avatar_url"),
+    actorUrl: text("actor_url"),
+    followerCount: integer("follower_count").notNull(),
+    occurredAt: integer("occurred_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: timestamps.createdAt,
+  },
+  (t) => [index("follower_events_user_idx").on(t.userId, t.occurredAt)],
+);
+
 export const webhookDeliveries = sqliteTable("webhook_deliveries", {
   deliveryId: text("delivery_id").primaryKey(),
   event: text("event").notNull(),
@@ -235,6 +281,8 @@ export const channels = sqliteTable(
     allRepos: integer("all_repos", { mode: "boolean" }).notNull().default(true),
     notifyStar: integer("notify_star", { mode: "boolean" }).notNull().default(true),
     notifyUnstar: integer("notify_unstar", { mode: "boolean" }).notNull().default(true),
+    notifyFollow: integer("notify_follow", { mode: "boolean" }).notNull().default(true),
+    notifyUnfollow: integer("notify_unfollow", { mode: "boolean" }).notNull().default(true),
     milestoneEvery: integer("milestone_every"),
     /** Dynamic frequency tiers, null when off. */
     frequencyTiers: text("frequency_tiers", { mode: "json" }).$type<FrequencyTier[] | null>(),
@@ -298,8 +346,34 @@ export const deliveryAttempts = sqliteTable(
   (t) => [index("attempts_delivery_idx").on(t.deliveryId)],
 );
 
+/** One row per follower event and channel. Same lifecycle as `notification_deliveries`. */
+export const followerDeliveries = sqliteTable(
+  "follower_deliveries",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => followerEvents.id, { onDelete: "cascade" }),
+    channelId: integer("channel_id")
+      .notNull()
+      .references(() => channels.id, { onDelete: "cascade" }),
+    status: text("status", { enum: DELIVERY_STATUSES }).notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: integer("next_attempt_at", { mode: "timestamp_ms" }),
+    lastError: text("last_error"),
+    deliveredAt: integer("delivered_at", { mode: "timestamp_ms" }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex("follower_deliveries_event_channel_idx").on(t.eventId, t.channelId),
+    index("follower_deliveries_due_idx").on(t.status, t.nextAttemptAt),
+  ],
+);
+
 export type User = typeof user.$inferSelect;
 export type Repository = typeof repositories.$inferSelect;
 export type Channel = typeof channels.$inferSelect;
 export type StarEvent = typeof starEvents.$inferSelect;
 export type UserSettings = typeof userSettings.$inferSelect;
+export type Follower = typeof followers.$inferSelect;
+export type FollowerEvent = typeof followerEvents.$inferSelect;

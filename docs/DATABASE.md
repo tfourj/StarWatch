@@ -45,6 +45,11 @@ Values marked *encrypted* are AES-256-GCM ciphertext (key derived from `ENCRYPTI
 | `time_style`               | `relative` or `absolute`                        |
 | `last_sync_at`             | Last repository and webhook sync                |
 | `last_poll_at`             | Last polling run                                |
+| `followers_enabled`        | Follower tracking on or off (default off)       |
+| `follower_count`           | Last known follower count                       |
+| `followers_imported_at`    | Set after the silent initial follower import    |
+| `followers_checked_at`     | Last follower check                             |
+| `followers_error`          | Last follower check error                       |
 
 ## Repositories and stargazers
 
@@ -109,6 +114,7 @@ Values marked *encrypted* are AES-256-GCM ciphertext (key derived from `ENCRYPTI
 | `enabled`        |                                                      |
 | `all_repos`      | Applies to every repo, otherwise `repository_channels` |
 | `notify_star`, `notify_unstar` | Event filters                          |
+| `notify_follow`, `notify_unfollow` | Follower event filters             |
 | `milestone_every` | Only notify when the star count is a multiple of N  |
 | `frequency_tiers` | Dynamic frequency: JSON `[{ from, every }]`, null when off |
 | `templates`      | Optional JSON template overrides                     |
@@ -126,3 +132,27 @@ Values marked *encrypted* are AES-256-GCM ciphertext (key derived from `ENCRYPTI
 | `delivered_at`    |                                               |
 
 **`delivery_attempts`** every send attempt (`delivery_id`, `attempt`, `success`, `error`, `duration_ms`, `created_at`)
+
+## Followers
+
+**`followers`** current followers of the token's GitHub account, used for diffing
+
+| Column           | Notes                                              |
+| ---------------- | -------------------------------------------------- |
+| `user_id`        | PK part, FK `user.id`                              |
+| `github_user_id` | PK part                                            |
+| `login`, `avatar_url` |                                               |
+| `followed_at`    | When the follow was seen, null for the initial import |
+
+**`follower_events`**
+
+| Column           | Notes                                     |
+| ---------------- | ----------------------------------------- |
+| `id`             | PK                                        |
+| `user_id`        | FK `user.id`                              |
+| `action`         | `followed` or `unfollowed`                |
+| `actor_id`, `actor_login`, `actor_avatar_url`, `actor_url` |  |
+| `follower_count` | Followers right after the event           |
+| `occurred_at`    |                                           |
+
+**`follower_deliveries`** one row per follower event and channel, same columns as `notification_deliveries`

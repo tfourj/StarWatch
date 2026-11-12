@@ -1,7 +1,14 @@
 import { stripMarkup } from "../../../shared/templates";
 import { optionalString, requireString, sendHttp, trimSlash } from "../http";
 import { listLinks, mainLink } from "../links";
-import type { NotificationProvider } from "../types";
+import type { NotificationMessage, NotificationProvider } from "../types";
+
+/** ntfy shows tags that match an emoji name as that emoji. */
+function tag(msg: NotificationMessage) {
+  if (msg.kind === "login") return "lock";
+  if (msg.kind === "follow") return msg.action === "followed" ? "bust_in_silhouette" : "wave";
+  return msg.action === "created" ? "star" : "broken_heart";
+}
 
 export const ntfy: NotificationProvider = {
   type: "ntfy",
@@ -18,8 +25,8 @@ export const ntfy: NotificationProvider = {
         message: stripMarkup(msg.body),
         click: mainLink(config, msg)?.url,
         actions: actions.length ? actions : undefined,
-        icon: (msg.kind === "star" && msg.vars.avatar) || undefined,
-        tags: [msg.kind === "login" ? "lock" : msg.action === "created" ? "star" : "broken_heart"],
+        icon: (msg.kind !== "login" && msg.vars.avatar) || undefined,
+        tags: [tag(msg)],
         priority: Number(optionalString(config, "priority") ?? 3),
       },
     });

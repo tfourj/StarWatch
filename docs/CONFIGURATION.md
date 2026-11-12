@@ -35,6 +35,11 @@ notification per star.
 
 **Initial import.** When a repo is first monitored, its current stargazers are imported without notifications.
 
+**Followers.** **Followers → Track followers** watches who follows the GitHub account the token belongs to. GitHub
+sends no webhook for follows, so StarWatch checks the follower count every polling interval and fetches the follower
+list only when it changed. Current followers are imported without notifications. **Stop tracking** clears the stored
+list; turning it back on imports it again. Saving a token for a different account starts a fresh import.
+
 ## Configuration
 
 | Variable               | Default                   | Description                                                        |
@@ -71,6 +76,7 @@ toggle, a **Test** button and filters:
 
 - all repositories or a selected list
 - stars, unstars or both
+- new followers, unfollows or both (these ignore the repository filter)
 - frequency: every star (default), milestones (only when the star count is a multiple of N), or dynamic:
 
   | Stars        | Notify on            |
@@ -108,8 +114,13 @@ Email channels have a **Sender name**, shown in the inbox instead of the bare ad
 the top of each message unless **Show StarWatch logo** is off. The avatar next to the sender is picked by the mail
 client (for example a Google account photo or a BIMI record on the domain), so StarWatch cannot set it.
 
+Follower messages use fixed text, for example "octocat followed you on GitHub. You now have 120 followers.", and
+their main link opens the follower's profile. The JSON webhook sends `"event": "follow"` with `action` `followed` or
+`unfollowed`.
+
 Failed deliveries are retried up to 6 times with exponential backoff (30s, 1m, 2m, 4m, 8m). Every attempt is logged
-and visible in **Events**, where you can also retry by hand.
+and visible in **Events**, where you can also retry by hand. Follower deliveries are listed on **Followers**; click a
+failed one to retry it.
 
 ## Account security
 
@@ -165,6 +176,8 @@ version restarts the tunnel. With `CLOUDFLARED_PATH` set, StarWatch uses that bi
 
 - Polling compares counts, so a star and an unstar between two polls cancel out and are missed. Webhooks catch both.
   The same applies to the sync check on webhook-only repos.
+- Follower checks compare counts too, so a follow and an unfollow between two checks cancel out. Accounts with more
+  than 10,000 followers are not tracked.
 - GitHub lists at most 40,000 stargazers per repo. Larger repos are imported partially and should use webhook mode.
 - Removing the GitHub token or deleting a user leaves existing webhooks on GitHub. Disable monitoring first to remove
   them.
