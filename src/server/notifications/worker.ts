@@ -5,6 +5,8 @@ import { getDb } from "../db/client";
 import {
   channels,
   deliveryAttempts,
+  followerDeliveries,
+  followerEvents,
   notificationDeliveries,
   repositories,
   starEvents,
@@ -15,7 +17,8 @@ import {
 import { formatEventTime, mergeTemplates, renderMessage } from "../lib/template";
 import { logger } from "../logger";
 import { decryptChannelConfig } from "../services/channels";
-import { getUserTemplates, getUserTimeFormat } from "../services/settings";
+import { getUserSettings, getUserTemplates, getUserTimeFormat } from "../services/settings";
+import { buildFollowMessage } from "./follow-message";
 import { getProvider } from "./providers";
 import type { NotificationMessage, StarMessage } from "./types";
 
@@ -140,6 +143,41 @@ async function attemptDelivery(deliveryId: number) {
   logDelivery(deliveryId, row.channel, update, durationMs);
 }
 
+async function attemptFollowerDelivery(deliveryId: number) {
+  const db = getDb();
+  const row = db
+    .select({ delivery: followerDeliveries, event: followerEvents, channel: channels })
+    .from(followerDeliveries)
+    .innerJoin(followerEvents, eq(followerEvents.id, followerDeliveries.eventId))
+    .innerJoin(channels, eq(channels.id, followerDeliveries.channelId))
+    .where(eq(followerDeliveries.id, deliveryId))
+    .get();
+  if (!row) return;
+
+  const attempt = row.delivery.attempts + 1;
+  const { error, durationMs } = await trySend(row.channel, () => {
+    const account = getUserSettings(row.event.userId).githubLogin ?? "";
+    return buildFollowMessage(row.event, account, getUserTimeFormat(row.event.userId));
+  });
+
+  const update = deliveryUpdate(attempt, error, row.channel);
+  db.update(followerDeliveries).set(update).where(eq(followerDeliveries.id, deliveryId)).run();
+  logDelivery(deliveryId, row.channel, update, durationMs);
+}
+
+const BATCH = 50;
+
+function dueIds(table: typeof notificationDeliveries | typeof followerDeliveries) {
+  return getDb()
+    .select({ id: table.id })
+    .from(table)
+    .where(and(inArray(table.status, ["pending", "retrying"]), lte(table.nextAttemptAt, new Date())))
+    .orderBy(table.nextAttemptAt)
+    .limit(BATCH)
+    .all()
+    .map((r) => r.id);
+}
+
 let running = false;
 let rerun = false;
 
@@ -153,20 +191,11 @@ export async function processDueDeliveries(): Promise<void> {
   try {
     do {
       rerun = false;
-      const due = getDb()
-        .select({ id: notificationDeliveries.id })
-        .from(notificationDeliveries)
-        .where(
-          and(
-            inArray(notificationDeliveries.status, ["pending", "retrying"]),
-            lte(notificationDeliveries.nextAttemptAt, new Date()),
-          ),
-        )
-        .orderBy(notificationDeliveries.nextAttemptAt)
-        .limit(50)
-        .all();
-      for (const { id } of due) await attemptDelivery(id);
-      if (due.length === 50) rerun = true;
+      const stars = dueIds(notificationDeliveries);
+      for (const id of stars) await attemptDelivery(id);
+      const follows = dueIds(followerDeliveries);
+      for (const id of follows) await attemptFollowerDelivery(id);
+      if (stars.length === BATCH || follows.length === BATCH) rerun = true;
     } while (rerun);
   } catch (err) {
     log.error("delivery worker error", { err });
@@ -177,6 +206,16 @@ export async function processDueDeliveries(): Promise<void> {
 
 export function kickWorker() {
   queueMicrotask(() => void processDueDeliveries());
+}
+
+/** Re-queue a failed follower delivery right away. */
+export function retryFollowerDelivery(deliveryId: number) {
+  getDb()
+    .update(followerDeliveries)
+    .set({ status: "retrying", nextAttemptAt: new Date() })
+    .where(eq(followerDeliveries.id, deliveryId))
+    .run();
+  kickWorker();
 }
 
 /** Re-queue a failed delivery right away. */
