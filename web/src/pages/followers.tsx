@@ -139,7 +139,7 @@ function ActivityCard({ onRetry }: { onRetry: (d: Delivery) => void }) {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   return (
-    <Card className="gap-0 py-0 lg:col-span-3">
+    <Card className="gap-0 py-0 xl:col-span-3">
       <CardHeader className="border-b py-4">
         <CardTitle>Activity</CardTitle>
       </CardHeader>
@@ -232,7 +232,7 @@ function FollowersCard({ status }: { status: FollowerStatus }) {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   return (
-    <Card className="gap-0 py-0 lg:col-span-2">
+    <Card className="gap-0 py-0 xl:col-span-2">
       <CardHeader className="border-b py-4">
         <CardTitle>Followers</CardTitle>
       </CardHeader>
@@ -398,7 +398,7 @@ export function FollowersPage() {
         <StatCard label="Unfollows in 30 days" value={formatNumber(status.unfollowed30d)} icon={UserMinus} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid gap-6 xl:grid-cols-5">
         <ActivityCard onRetry={(d) => mutations.retry.mutate(d)} />
         <FollowersCard status={status} />
       </div>
