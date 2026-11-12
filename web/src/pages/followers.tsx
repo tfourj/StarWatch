@@ -33,8 +33,9 @@ import { cn, formatDateTime, formatNumber, timeAgo } from "@/lib/utils";
 const EVENTS_PAGE_SIZE = 25;
 const FOLLOWERS_PAGE_SIZE = 50;
 // Both cards share a capped height and scroll their body, so long lists never stretch the page.
+// Without a pager below it, the body stops short of the rounded corner so the scrollbar is not clipped.
 const LIST_CARD_CLASS = "max-h-[40rem] gap-0 py-0";
-const LIST_BODY_CLASS = "min-h-0 flex-1 overflow-y-auto px-0";
+const LIST_BODY_CLASS = "min-h-0 flex-1 overflow-y-auto px-0 last:mb-(--radius-xl)";
 
 function useFollowerMutations() {
   const queryClient = useQueryClient();
