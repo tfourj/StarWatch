@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Search,
   Star,
+  X,
   Zap,
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
@@ -504,7 +505,24 @@ export function RepositoriesPage() {
     status !== "all" ||
     channelFilter !== "all" ||
     hiddenCount(hidden) > 0;
+  const customized = filtered || sort !== "name";
   const monitoredShown = repos.filter((r) => r.monitored);
+
+  function clearFilters() {
+    setQuery("");
+    setModeFilter("all");
+    setStatus("all");
+    setChannelFilter("all");
+    setHidden(NO_HIDDEN_KINDS);
+    setSort("name");
+  }
+
+  const clearButton = (
+    <Button variant="ghost" onClick={clearFilters}>
+      <X />
+      Clear
+    </Button>
+  );
 
   function addRepos(repoIds: number[], mode: RepoMode) {
     mutations.bulk.mutate({ monitored: true, repoIds, mode }, { onSuccess: () => setAdding(false) });
@@ -632,6 +650,7 @@ export function RepositoriesPage() {
                 ))}
               </SelectContent>
             </Select>
+            {customized && clearButton}
           </div>
         )}
         <CardContent className="px-0">
@@ -667,7 +686,12 @@ export function RepositoriesPage() {
               action={addButton}
             />
           ) : repos.length === 0 ? (
-            <EmptyState icon={Search} title="No matching repositories" description="Try a different filter." />
+            <EmptyState
+              icon={Search}
+              title="No matching repositories"
+              description="Try a different filter."
+              action={clearButton}
+            />
           ) : (
             <Table>
               <TableHeader>
