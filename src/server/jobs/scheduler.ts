@@ -3,6 +3,7 @@ import { affected, getDb } from "../db/client";
 import { webhookDeliveries } from "../db/schema";
 import { logger } from "../logger";
 import { processDueDeliveries } from "../notifications/worker";
+import { syncFollowers } from "../services/followers";
 import { pollUser } from "../services/polling";
 import { syncRepositories } from "../services/repos";
 import { listUsersWithTokens } from "../services/settings";
@@ -20,8 +21,15 @@ async function pollTick() {
   const now = Date.now();
   for (const settings of listUsersWithTokens()) {
     const interval = Math.max(1, settings.pollingIntervalMinutes) * 60_000;
-    if (settings.lastPollAt && now - settings.lastPollAt.getTime() < interval) continue;
-    await pollUser(settings.userId).catch((err) => log.error("poll job failed", { userId: settings.userId, err }));
+    const due = (last: Date | null) => !last || now - last.getTime() >= interval;
+    if (due(settings.lastPollAt)) {
+      await pollUser(settings.userId).catch((err) => log.error("poll job failed", { userId: settings.userId, err }));
+    }
+    if (settings.followersEnabled && due(settings.followersCheckedAt)) {
+      await syncFollowers(settings.userId).catch(() => {
+        // already logged and stored on the user settings
+      });
+    }
   }
 }
 
