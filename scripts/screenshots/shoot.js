@@ -31,16 +31,19 @@ const SHOTS = [
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 });
   await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: THEME }]);
-  // Mark the current version's release notes as seen so the "new" dot does not show.
+  // Mark the current version's release notes as seen on the account so the "new" dot does not show.
   const { version } = await (await fetch(`${BASE}/api/setup/status`)).json();
-  await page.evaluateOnNewDocument(
-    (theme, seen) => {
-      localStorage.setItem("starwatch-theme", theme);
-      localStorage.setItem("starwatch-seen-version", seen);
+  const seen = await fetch(`${BASE}/api/me/seen-version`, {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json",
+      origin: BASE,
+      cookie: cookies.map((c) => `${c.name}=${c.value}`).join("; "),
     },
-    THEME,
-    version,
-  );
+    body: JSON.stringify({ version }),
+  });
+  if (!seen.ok) throw new Error(`marking the version seen failed: ${seen.status} ${await seen.text()}`);
+  await page.evaluateOnNewDocument((theme) => localStorage.setItem("starwatch-theme", theme), THEME);
   await page.setCookie(...cookies);
 
   for (const s of SHOTS) {
