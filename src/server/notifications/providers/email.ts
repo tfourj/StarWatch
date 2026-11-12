@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import nodemailer, { type SendMailOptions } from "nodemailer";
@@ -20,6 +21,7 @@ export function buildMail(config: ChannelConfig, msg: NotificationMessage, logo:
   const address = requireString(config, "from");
   const name = optionalString(config, "fromName");
   const showLogo = config.showLogo !== false && config.showLogo !== "false" && logo !== null;
+  const separateThreads = config.separateThreads === true || config.separateThreads === "true";
 
   const v = msg.vars;
   const trailing = trailingLink(config, msg);
@@ -52,6 +54,8 @@ export function buildMail(config: ChannelConfig, msg: NotificationMessage, logo:
       `<div style="font-family:sans-serif">${header}` +
       `<table role="presentation" cellpadding="0" cellspacing="0"><tr>${avatar}${content}</tr></table></div>`,
     attachments: showLogo ? [{ filename: "starwatch.png", path: logo, cid: LOGO_CID }] : undefined,
+    // A fresh X-Entity-Ref-ID keeps Gmail from grouping emails that share a subject.
+    headers: separateThreads ? { "X-Entity-Ref-ID": randomUUID() } : undefined,
   };
 }
 
