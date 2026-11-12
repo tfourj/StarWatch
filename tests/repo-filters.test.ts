@@ -1,14 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import {
   NO_HIDDEN_KINDS,
+  assignedChannels,
   hiddenCount,
   isVisible,
+  matchesChannel,
   matchesMode,
   matchesQuery,
   matchesStatus,
   sortRepos,
 } from "../web/src/lib/repo-filters";
-import type { Repo } from "../web/src/lib/types";
+import type { ChannelSummary, Repo } from "../web/src/lib/types";
 
 function repo(fullName: string, extra: Partial<Repo> = {}): Repo {
   const [owner, name] = fullName.split("/");
@@ -101,5 +103,36 @@ describe("filters", () => {
     expect(isVisible(repo("o/r", { archived: true }), hidden)).toBe(true);
     expect(isVisible(repo("o/r", { private: true }), NO_HIDDEN_KINDS)).toBe(true);
     expect(hiddenCount(hidden)).toBe(2);
+  });
+
+  describe("channels", () => {
+    const channel = (id: number, allRepos = false): ChannelSummary => ({
+      id,
+      name: `channel ${id}`,
+      type: "discord",
+      allRepos,
+      enabled: true,
+    });
+    const scoped = [channel(1), channel(2)];
+    const withGlobal = [...scoped, channel(3, true)];
+
+    test("lists assigned channels including global ones", () => {
+      const r = repo("o/r", { channelIds: [2] });
+      expect(assignedChannels(r, scoped).map((c) => c.id)).toEqual([2]);
+      expect(assignedChannels(r, withGlobal).map((c) => c.id)).toEqual([2, 3]);
+    });
+
+    test("matches a specific channel", () => {
+      expect(matchesChannel(repo("o/r", { channelIds: [1] }), 1, scoped)).toBe(true);
+      expect(matchesChannel(repo("o/r", { channelIds: [1] }), 2, scoped)).toBe(false);
+      expect(matchesChannel(repo("o/r"), 3, withGlobal)).toBe(true);
+      expect(matchesChannel(repo("o/r"), "all", scoped)).toBe(true);
+    });
+
+    test("matches repositories without any channel", () => {
+      expect(matchesChannel(repo("o/r"), "none", scoped)).toBe(true);
+      expect(matchesChannel(repo("o/r", { channelIds: [1] }), "none", scoped)).toBe(false);
+      expect(matchesChannel(repo("o/r"), "none", withGlobal)).toBe(false);
+    });
   });
 });

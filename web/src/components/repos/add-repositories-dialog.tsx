@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  HIDE_OPTIONS,
   NO_HIDDEN_KINDS,
   SORT_OPTIONS,
   hiddenCount,
@@ -39,12 +40,6 @@ const MODE_HELP: Record<RepoMode, string> = {
   polling: "Checks every polling interval. No webhook and no public URL needed.",
   both: "Webhook for instant alerts, polling to catch anything missed.",
 };
-
-const HIDE_OPTIONS: { key: keyof HiddenKinds; label: string }[] = [
-  { key: "private", label: "Hide private" },
-  { key: "forks", label: "Hide forks" },
-  { key: "archived", label: "Hide archived" },
-];
 
 export function AddRepositoriesDialog({
   open,

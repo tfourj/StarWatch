@@ -5,15 +5,17 @@ import {
   ChevronDown,
   Copy,
   EyeOff,
+  Filter,
   Loader2,
   Lock,
   Plus,
   RefreshCw,
   Search,
   Star,
+  X,
   Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { AddRepositoriesDialog } from "@/components/repos/add-repositories-dialog";
@@ -37,13 +39,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api, errorMessage } from "@/lib/api";
 import {
+  HIDE_OPTIONS,
   MODE_FILTER_OPTIONS,
+  NO_HIDDEN_KINDS,
   SORT_OPTIONS,
   STATUS_FILTER_OPTIONS,
+  assignedChannels,
+  hiddenCount,
+  isVisible,
+  matchesChannel,
   matchesMode,
   matchesQuery,
   matchesStatus,
   sortRepos,
+  type ChannelFilter,
+  type HiddenKinds,
   type ModeFilter,
   type RepoSort,
   type StatusFilter,
@@ -57,7 +67,7 @@ import type {
   ReposResponse,
   SyncSummary,
 } from "@/lib/types";
-import { formatNumber, timeAgo } from "@/lib/utils";
+import { cn, formatNumber, timeAgo } from "@/lib/utils";
 
 const MODES: { value: RepoMode; label: string }[] = [
   { value: "webhook", label: "Webhook" },
@@ -142,6 +152,59 @@ function useRepoMutations() {
   return { update, setChannels, ping, sync, bulk };
 }
 
+/** A table column title that opens a menu of filters for that column. */
+function FilterHead({
+  label,
+  active,
+  className,
+  children,
+}: {
+  label: string;
+  active: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <TableHead className={className}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "-mx-1.5 inline-flex items-center gap-1 rounded px-1.5 py-1 uppercase",
+              "hover:bg-muted hover:text-foreground data-[state=open]:bg-muted",
+              active && "text-foreground",
+            )}
+          >
+            {label}
+            {active ? <Filter className="size-3 fill-current" /> : <ChevronDown className="size-3 opacity-50" />}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-48">
+          {children}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </TableHead>
+  );
+}
+
+/** Single choice menu items, checked on the current value. */
+function ChoiceItems<T extends string | number>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  return options.map((o) => (
+    <DropdownMenuCheckboxItem key={o.value} checked={value === o.value} onCheckedChange={() => onChange(o.value)}>
+      {o.label}
+    </DropdownMenuCheckboxItem>
+  ));
+}
+
 function ChannelPicker({
   repo,
   channels,
@@ -153,7 +216,7 @@ function ChannelPicker({
 }) {
   const global = channels.filter((c) => c.allRepos);
   const scoped = channels.filter((c) => !c.allRepos);
-  const assigned = channels.filter((c) => c.allRepos || repo.channelIds.includes(c.id));
+  const assigned = assignedChannels(repo, channels);
 
   if (channels.length === 0) {
     return (
@@ -410,6 +473,8 @@ export function RepositoriesPage() {
   const [modeFilter, setModeFilter] = useState<ModeFilter>("all");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<RepoSort>("name");
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
+  const [hidden, setHidden] = useState<HiddenKinds>(NO_HIDDEN_KINDS);
   const [adding, setAdding] = useState(false);
   const [confirmStopAll, setConfirmStopAll] = useState(false);
   const [stargazersRepo, setStargazersRepo] = useState<Repo | null>(null);
@@ -422,14 +487,42 @@ export function RepositoriesPage() {
   const candidates = useMemo(() => (data?.repos ?? []).filter((r) => !r.monitored), [data]);
 
   const repos = useMemo(() => {
+    const channels = data?.channels ?? [];
     const shown = tracked.filter(
-      (r) => matchesQuery(r, query) && matchesMode(r, modeFilter) && matchesStatus(r, status),
+      (r) =>
+        matchesQuery(r, query) &&
+        matchesMode(r, modeFilter) &&
+        matchesStatus(r, status) &&
+        matchesChannel(r, channelFilter, channels) &&
+        isVisible(r, hidden),
     );
     return sortRepos(shown, sort);
-  }, [tracked, query, modeFilter, status, sort]);
+  }, [tracked, data, query, modeFilter, status, channelFilter, hidden, sort]);
 
-  const filtered = query.trim() !== "" || modeFilter !== "all" || status !== "all";
+  const filtered =
+    query.trim() !== "" ||
+    modeFilter !== "all" ||
+    status !== "all" ||
+    channelFilter !== "all" ||
+    hiddenCount(hidden) > 0;
+  const customized = filtered || sort !== "name";
   const monitoredShown = repos.filter((r) => r.monitored);
+
+  function clearFilters() {
+    setQuery("");
+    setModeFilter("all");
+    setStatus("all");
+    setChannelFilter("all");
+    setHidden(NO_HIDDEN_KINDS);
+    setSort("name");
+  }
+
+  const clearButton = (
+    <Button variant="ghost" onClick={clearFilters}>
+      <X />
+      Clear
+    </Button>
+  );
 
   function addRepos(repoIds: number[], mode: RepoMode) {
     mutations.bulk.mutate({ monitored: true, repoIds, mode }, { onSuccess: () => setAdding(false) });
@@ -557,6 +650,7 @@ export function RepositoriesPage() {
                 ))}
               </SelectContent>
             </Select>
+            {customized && clearButton}
           </div>
         )}
         <CardContent className="px-0">
@@ -592,16 +686,56 @@ export function RepositoriesPage() {
               action={addButton}
             />
           ) : repos.length === 0 ? (
-            <EmptyState icon={Search} title="No matching repositories" description="Try a different filter." />
+            <EmptyState
+              icon={Search}
+              title="No matching repositories"
+              description="Try a different filter."
+              action={clearButton}
+            />
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-4">Repository</TableHead>
-                  <TableHead>Stars</TableHead>
-                  <TableHead>Mode</TableHead>
-                  <TableHead>Webhook</TableHead>
-                  <TableHead>Channels</TableHead>
+                  <FilterHead label="Repository" active={hiddenCount(hidden) > 0} className="pl-4">
+                    <DropdownMenuCheckboxItem checked={sort === "name"} onCheckedChange={() => setSort("name")}>
+                      Sort by name
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuSeparator />
+                    {HIDE_OPTIONS.map((o) => (
+                      <DropdownMenuCheckboxItem
+                        key={o.key}
+                        checked={hidden[o.key]}
+                        onSelect={(e) => e.preventDefault()}
+                        onCheckedChange={(value) => setHidden((prev) => ({ ...prev, [o.key]: value === true }))}
+                      >
+                        {o.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </FilterHead>
+                  <FilterHead label="Stars" active={sort !== "name"}>
+                    <ChoiceItems
+                      options={SORT_OPTIONS.filter((o) => o.value !== "name")}
+                      value={sort}
+                      onChange={setSort}
+                    />
+                  </FilterHead>
+                  <FilterHead label="Mode" active={modeFilter !== "all"}>
+                    <ChoiceItems options={MODE_FILTER_OPTIONS} value={modeFilter} onChange={setModeFilter} />
+                  </FilterHead>
+                  <FilterHead label="Webhook" active={status !== "all"}>
+                    <ChoiceItems options={STATUS_FILTER_OPTIONS} value={status} onChange={setStatus} />
+                  </FilterHead>
+                  <FilterHead label="Channels" active={channelFilter !== "all"}>
+                    <ChoiceItems
+                      options={[
+                        { value: "all", label: "All channels" },
+                        { value: "none", label: "No channel" },
+                        ...data.channels.map((c) => ({ value: c.id, label: c.name })),
+                      ]}
+                      value={channelFilter}
+                      onChange={setChannelFilter}
+                    />
+                  </FilterHead>
                   <TableHead className="pr-4">
                     <span className="sr-only">Actions</span>
                   </TableHead>
