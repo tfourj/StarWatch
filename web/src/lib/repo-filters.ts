@@ -1,8 +1,10 @@
-import type { Repo, RepoMode } from "@/lib/types";
+import type { ChannelSummary, Repo, RepoMode } from "@/lib/types";
 
 export type RepoSort = "name" | "stars-desc" | "stars-asc";
 export type ModeFilter = "all" | RepoMode;
 export type StatusFilter = "all" | "problems" | "active" | "failing" | "missing";
+/** A channel id, or repositories that send to no channel at all. */
+export type ChannelFilter = "all" | "none" | number;
 
 /** Kinds of repositories that can be hidden from a list. */
 export interface HiddenKinds {
@@ -56,6 +58,18 @@ export function matchesStatus(repo: Repo, status: StatusFilter) {
     case "missing":
       return repo.hookStatus === "missing";
   }
+}
+
+/** Channels a repository sends to, including channels that cover all repositories. */
+export function assignedChannels(repo: Repo, channels: ChannelSummary[]) {
+  return channels.filter((c) => c.allRepos || repo.channelIds.includes(c.id));
+}
+
+export function matchesChannel(repo: Repo, filter: ChannelFilter, channels: ChannelSummary[]) {
+  if (filter === "all") return true;
+  const assigned = assignedChannels(repo, channels);
+  if (filter === "none") return assigned.length === 0;
+  return assigned.some((c) => c.id === filter);
 }
 
 export function isVisible(repo: Repo, hidden: HiddenKinds) {
