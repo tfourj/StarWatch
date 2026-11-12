@@ -112,7 +112,8 @@ also added below the message when the template has no links of its own.
 
 Email channels have a **Sender name**, shown in the inbox instead of the bare address, and add the StarWatch logo at
 the top of each message unless **Show StarWatch logo** is off. The avatar next to the sender is picked by the mail
-client (for example a Google account photo or a BIMI record on the domain), so StarWatch cannot set it.
+client (for example a Google account photo or a BIMI record on the domain), so StarWatch cannot set it. Gmail groups
+emails with the same subject into one conversation. Turn on **Start a new thread for each email** to keep them apart.
 
 Follower messages use fixed text, for example "octocat followed you on GitHub. You now have 120 followers.", and
 their main link opens the follower's profile. The JSON webhook sends `"event": "follow"` with `action` `followed` or
