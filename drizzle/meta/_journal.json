@@ -57,6 +57,13 @@
       "when": 1794174034590,
       "tag": "0007_time_preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794477071149,
+      "tag": "0008_followers",
+      "breakpoints": true
     }
   ]
 }
