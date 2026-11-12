@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, RefreshCw, Search, UserMinus, UserPlus, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import {
@@ -230,9 +230,14 @@ function FollowersCard({ status }: { status: FollowerStatus }) {
     refetchInterval: status.importing ? 3_000 : 30_000,
   });
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: 0 });
+  }, [page, search]);
 
   return (
-    <Card className="gap-0 py-0 xl:col-span-2">
+    <Card className="gap-0 py-0 xl:col-span-2 xl:h-0 xl:min-h-full">
       <CardHeader className="border-b py-4">
         <CardTitle>Followers</CardTitle>
       </CardHeader>
@@ -248,7 +253,7 @@ function FollowersCard({ status }: { status: FollowerStatus }) {
           <Spinner className="absolute top-1/2 right-6 -translate-y-1/2 text-muted-foreground" />
         )}
       </div>
-      <CardContent className="px-0">
+      <CardContent ref={listRef} className="max-h-[32rem] min-h-0 flex-1 overflow-y-auto px-0 xl:max-h-none">
         {error && (
           <div className="p-4">
             <ErrorNote>{error.message}</ErrorNote>
@@ -398,7 +403,7 @@ export function FollowersPage() {
         <StatCard label="Unfollows in 30 days" value={formatNumber(status.unfollowed30d)} icon={UserMinus} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-5">
+      <div className="grid gap-6 xl:auto-rows-[minmax(36rem,auto)] xl:grid-cols-5">
         <ActivityCard onRetry={(d) => mutations.retry.mutate(d)} />
         <FollowersCard status={status} />
       </div>
