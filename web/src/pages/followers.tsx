@@ -28,10 +28,13 @@ import type {
   FollowerStatus,
   FollowerSyncSummary,
 } from "@/lib/types";
-import { formatDateTime, formatNumber, timeAgo } from "@/lib/utils";
+import { cn, formatDateTime, formatNumber, timeAgo } from "@/lib/utils";
 
 const EVENTS_PAGE_SIZE = 25;
 const FOLLOWERS_PAGE_SIZE = 50;
+// Both cards share a capped height and scroll their body, so long lists never stretch the page.
+const LIST_CARD_CLASS = "max-h-[40rem] gap-0 py-0";
+const LIST_BODY_CLASS = "min-h-0 flex-1 overflow-y-auto px-0";
 
 function useFollowerMutations() {
   const queryClient = useQueryClient();
@@ -137,13 +140,18 @@ function ActivityCard({ onRetry }: { onRetry: (d: Delivery) => void }) {
     refetchInterval: 15_000,
   });
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [page]);
 
   return (
-    <Card className="gap-0 py-0 xl:col-span-3">
+    <Card className={cn(LIST_CARD_CLASS, "xl:col-span-3")}>
       <CardHeader className="border-b py-4">
         <CardTitle>Activity</CardTitle>
       </CardHeader>
-      <CardContent className="px-0">
+      <CardContent ref={bodyRef} className={cn(LIST_BODY_CLASS, "[&_[data-slot=table-container]]:overflow-visible")}>
         {error && (
           <div className="p-4">
             <ErrorNote>{error.message}</ErrorNote>
@@ -163,7 +171,7 @@ function ActivityCard({ onRetry }: { onRetry: (d: Delivery) => void }) {
           />
         ) : (
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-card shadow-[inset_0_-1px_0_var(--border)]">
               <TableRow className="hover:bg-transparent">
                 <TableHead className="pl-4">User</TableHead>
                 <TableHead>Action</TableHead>
@@ -237,7 +245,7 @@ function FollowersCard({ status }: { status: FollowerStatus }) {
   }, [page, search]);
 
   return (
-    <Card className="gap-0 py-0 xl:col-span-2 xl:self-start">
+    <Card className={cn(LIST_CARD_CLASS, "xl:col-span-2")}>
       <CardHeader className="border-b py-4">
         <CardTitle>Followers</CardTitle>
       </CardHeader>
@@ -253,7 +261,7 @@ function FollowersCard({ status }: { status: FollowerStatus }) {
           <Spinner className="absolute top-1/2 right-6 -translate-y-1/2 text-muted-foreground" />
         )}
       </div>
-      <CardContent ref={listRef} className="max-h-[32rem] overflow-y-auto px-0">
+      <CardContent ref={listRef} className={LIST_BODY_CLASS}>
         {error && (
           <div className="p-4">
             <ErrorNote>{error.message}</ErrorNote>
