@@ -2,6 +2,30 @@
 
 All notable changes to StarWatch are listed here. The newest version is at the top.
 
+## [1.2.0] - 2026-11-12
+
+### Added
+
+- Follower tracking in a new **Followers** tab. Get notified on any channel when someone follows or unfollows the GitHub account, with a 30-day summary, activity log and searchable follower list. Off by default.
+- **New followers** and **Unfollows** options per channel.
+- Per-account time settings in **Settings → Account → Time display**: timezone, 12 or 24-hour clock, and relative or full dates. They apply to the app, `{time}`, login alerts and the dashboard.
+- Bold in message templates with `**text**`, for example `**[{user}]({user_url})**`.
+- **Start a new thread for each email** option for Email (SMTP) channels, so Gmail stops grouping alerts into one conversation.
+- Install StarWatch as an app from the browser. It opens offline to the last loaded page.
+- Repository filters for mode, webhook status and channel, and sorting by name or star count. Click a column title on the Repositories table to filter it, and **Clear** to reset.
+- Sorting and **Hide** private, fork and archived repositories in the **Add repositories** dialog.
+
+### Changed
+
+- What's new is redesigned with collapsible releases and a card showing the running version, or how many commits a build is ahead of the last release.
+- The What's new dot is cleared per account, so opening it on one device clears it everywhere.
+- Any build of a release commit shows the version instead of the short commit, including `:main`, `:preview` and the demo.
+
+### Fixed
+
+- Webhook-only repositories kept stargazers that GitHub removed without a webhook, such as deleted or spam accounts. The hourly sync now finds and records these changes.
+- The Followers list stretched the page, and its Activity scrollbar overlapped the card corner.
+
 ## [1.1.0] - 2026-11-08
 
 ### Added
