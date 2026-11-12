@@ -90,6 +90,25 @@ describe("demo api", () => {
     expect(created.config.serverUrl).toBe("https://ntfy.sh");
   });
 
+  test("followers have a list, activity and retryable deliveries", async () => {
+    const status = await get("/followers");
+    expect(status).toMatchObject({ enabled: true, login: "demo" });
+    expect(status.followed30d).toBeGreaterThan(0);
+
+    const list = await get("/followers/list?pageSize=50");
+    expect(list.total).toBe(status.followerCount);
+    expect(list.items[0].followedAt).not.toBeNull();
+
+    const activity = await get("/followers/events");
+    expect(activity.items[0].deliveries.length).toBeGreaterThan(0);
+    const failed = activity.items.flatMap((e: any) => e.deliveries).find((d: any) => d.status === "failed");
+    await send("POST", `/followers/deliveries/${failed.id}/retry`);
+    await expect(send("POST", `/followers/deliveries/${failed.id}/retry`)).rejects.toThrow("already succeeded");
+
+    expect((await send("PUT", "/followers", { enabled: false })).enabled).toBe(false);
+    await expect(send("POST", "/followers/sync")).rejects.toThrow("not available in the demo");
+  });
+
   test("anything that needs GitHub or sends notifications explains it is a demo", async () => {
     await expect(send("POST", "/repos/sync")).rejects.toThrow("not available in the demo");
     await expect(send("POST", "/channels/1/test")).rejects.toThrow("not available in the demo");
