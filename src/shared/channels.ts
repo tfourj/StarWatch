@@ -140,6 +140,7 @@ export const CHANNEL_TYPES: ChannelTypeInfo[] = [
       { key: "from", label: "From", type: "email", required: true, placeholder: "starwatch@example.com" },
       { key: "to", label: "To", type: "text", required: true, help: "Comma separated addresses" },
       { key: "showLogo", label: "Show StarWatch logo", type: "boolean", default: true },
+      { key: "separateThreads", label: "Start a new thread for each email", type: "boolean", default: false },
       mainLink(LINE_HELP),
     ],
   },
