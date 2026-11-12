@@ -49,7 +49,7 @@ StarWatch/
 │       ├── main.tsx            React entry
 │       ├── App.tsx             Router and auth guards
 │       ├── index.css           Tailwind and theme tokens
-│       ├── lib/                API client, auth client, response types, service worker registration, utilities
+│       ├── lib/                API client, auth client, response types, repository filters, service worker, utilities
 │       ├── hooks/              Session and setup-status queries
 │       ├── components/ui/      shadcn/ui components
 │       ├── demo/               In-browser fake API for the static demo build

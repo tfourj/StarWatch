@@ -1,4 +1,4 @@
-import { BookMarked, Lock, Search, Star } from "lucide-react";
+import { ArrowDownUp, BookMarked, ListFilter, Lock, Search, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  NO_HIDDEN_KINDS,
+  SORT_OPTIONS,
+  hiddenCount,
+  isVisible,
+  matchesQuery,
+  sortRepos,
+  type HiddenKinds,
+  type RepoSort,
+} from "@/lib/repo-filters";
 import type { Repo, RepoMode } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
 
@@ -23,6 +39,12 @@ const MODE_HELP: Record<RepoMode, string> = {
   polling: "Checks every polling interval. No webhook and no public URL needed.",
   both: "Webhook for instant alerts, polling to catch anything missed.",
 };
+
+const HIDE_OPTIONS: { key: keyof HiddenKinds; label: string }[] = [
+  { key: "private", label: "Hide private" },
+  { key: "forks", label: "Hide forks" },
+  { key: "archived", label: "Hide archived" },
+];
 
 export function AddRepositoriesDialog({
   open,
@@ -41,6 +63,8 @@ export function AddRepositoriesDialog({
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [mode, setMode] = useState<RepoMode>("webhook");
+  const [sort, setSort] = useState<RepoSort>("name");
+  const [hidden, setHidden] = useState<HiddenKinds>(NO_HIDDEN_KINDS);
 
   useEffect(() => {
     if (open) {
@@ -49,10 +73,12 @@ export function AddRepositoriesDialog({
     }
   }, [open]);
 
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q ? repos.filter((r) => r.fullName.toLowerCase().includes(q)) : repos;
-  }, [repos, query]);
+  const shown = useMemo(
+    () => sortRepos(repos.filter((r) => matchesQuery(r, query) && isVisible(r, hidden)), sort),
+    [repos, query, hidden, sort],
+  );
+  const hiding = hiddenCount(hidden);
+  const narrowed = query.trim() !== "" || hiding > 0;
 
   const allShownSelected = shown.length > 0 && shown.every((r) => selected.has(r.id));
 
@@ -84,15 +110,59 @@ export function AddRepositoriesDialog({
           <DialogDescription>Pick the repositories StarWatch should watch for stars.</DialogDescription>
         </DialogHeader>
 
-        <div className="relative">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search repositories"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-9"
-            autoFocus
-          />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search repositories"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-9"
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-2">
+            <Select value={sort} onValueChange={(v) => setSort(v as RepoSort)}>
+              <SelectTrigger className="flex-1 sm:w-36 sm:flex-none" aria-label="Sort">
+                <span className="flex min-w-0 items-center gap-2">
+                  <ArrowDownUp className="size-4 text-muted-foreground" />
+                  <SelectValue />
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" aria-label="Filter repositories">
+                  <ListFilter />
+                  Filter
+                  {hiding > 0 && (
+                    <Badge variant="secondary" className="px-1.5 tabular-nums">
+                      {hiding}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                {HIDE_OPTIONS.map((o) => (
+                  <DropdownMenuCheckboxItem
+                    key={o.key}
+                    checked={hidden[o.key]}
+                    onSelect={(e) => e.preventDefault()}
+                    onCheckedChange={(value) => setHidden((prev) => ({ ...prev, [o.key]: value === true }))}
+                  >
+                    {o.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         <div className="rounded-md border">
@@ -111,7 +181,7 @@ export function AddRepositoriesDialog({
                   onCheckedChange={(v) => toggleShown(v === true)}
                 />
                 <span className="font-medium">
-                  {query ? `Select all ${shown.length} matching` : `Select all ${shown.length}`}
+                  {narrowed ? `Select all ${shown.length} matching` : `Select all ${shown.length}`}
                 </span>
                 {selected.size > 0 && (
                   <span className="ml-auto text-xs text-muted-foreground">{selected.size} selected</span>
