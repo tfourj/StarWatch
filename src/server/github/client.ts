@@ -195,10 +195,15 @@ export class GitHubClient {
   }
 
   async getAuthenticatedUser() {
-    const res = await this.request<GitHubUserSummary & { name: string | null }>("GET", "/user");
+    const res = await this.request<GitHubUserSummary & { name: string | null; followers: number }>("GET", "/user");
     const header = res.headers.get("x-oauth-scopes");
     const scopes = header === null ? null : header.split(",").map((s) => s.trim()).filter(Boolean);
     return { user: res.data, scopes };
+  }
+
+  /** Followers of the token's account. */
+  listFollowers() {
+    return this.paginate<GitHubUserSummary>("/user/followers");
   }
 
   listOwnedRepos() {
