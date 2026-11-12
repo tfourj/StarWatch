@@ -1,5 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookMarked, ChevronDown, Copy, EyeOff, Loader2, Lock, Plus, RefreshCw, Search, Star, Zap } from "lucide-react";
+import {
+  ArrowDownUp,
+  BookMarked,
+  ChevronDown,
+  Copy,
+  EyeOff,
+  Loader2,
+  Lock,
+  Plus,
+  RefreshCw,
+  Search,
+  Star,
+  Zap,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -23,6 +36,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api, errorMessage } from "@/lib/api";
+import {
+  MODE_FILTER_OPTIONS,
+  SORT_OPTIONS,
+  STATUS_FILTER_OPTIONS,
+  matchesMode,
+  matchesQuery,
+  matchesStatus,
+  sortRepos,
+  type ModeFilter,
+  type RepoSort,
+  type StatusFilter,
+} from "@/lib/repo-filters";
 import type {
   BulkMonitoringResult,
   ChannelSummary,
@@ -39,8 +64,6 @@ const MODES: { value: RepoMode; label: string }[] = [
   { value: "polling", label: "Polling" },
   { value: "both", label: "Both" },
 ];
-
-type Filter = "all" | "problems";
 
 function useRepoMutations() {
   const queryClient = useQueryClient();
@@ -384,7 +407,9 @@ export function RepositoriesPage() {
   });
   const mutations = useRepoMutations();
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [modeFilter, setModeFilter] = useState<ModeFilter>("all");
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [sort, setSort] = useState<RepoSort>("name");
   const [adding, setAdding] = useState(false);
   const [confirmStopAll, setConfirmStopAll] = useState(false);
   const [stargazersRepo, setStargazersRepo] = useState<Repo | null>(null);
@@ -397,15 +422,13 @@ export function RepositoriesPage() {
   const candidates = useMemo(() => (data?.repos ?? []).filter((r) => !r.monitored), [data]);
 
   const repos = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return tracked.filter((r) => {
-      if (q && !r.fullName.toLowerCase().includes(q)) return false;
-      if (filter === "problems") return r.hookStatus === "error" || Boolean(r.backfillError);
-      return true;
-    });
-  }, [tracked, query, filter]);
+    const shown = tracked.filter(
+      (r) => matchesQuery(r, query) && matchesMode(r, modeFilter) && matchesStatus(r, status),
+    );
+    return sortRepos(shown, sort);
+  }, [tracked, query, modeFilter, status, sort]);
 
-  const filtered = query.trim() !== "" || filter !== "all";
+  const filtered = query.trim() !== "" || modeFilter !== "all" || status !== "all";
   const monitoredShown = repos.filter((r) => r.monitored);
 
   function addRepos(repoIds: number[], mode: RepoMode) {
@@ -495,13 +518,43 @@ export function RepositoriesPage() {
                 className="pl-9"
               />
             </div>
-            <Select value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-              <SelectTrigger className="w-full sm:w-44">
+            <Select value={modeFilter} onValueChange={(v) => setModeFilter(v as ModeFilter)}>
+              <SelectTrigger className="w-full sm:w-32" aria-label="Mode">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All monitored</SelectItem>
-                <SelectItem value="problems">With problems</SelectItem>
+                {MODE_FILTER_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
+              <SelectTrigger className="w-full sm:w-40" aria-label="Status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTER_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sort} onValueChange={(v) => setSort(v as RepoSort)}>
+              <SelectTrigger className="w-full sm:w-36" aria-label="Sort">
+                <span className="flex min-w-0 items-center gap-2">
+                  <ArrowDownUp className="size-4 text-muted-foreground" />
+                  <SelectValue />
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
