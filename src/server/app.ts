@@ -12,6 +12,7 @@ import { logger } from "./logger";
 import { channelRoutes } from "./routes/channels";
 import { dashboard } from "./routes/dashboard";
 import { events } from "./routes/events";
+import { followerRoutes } from "./routes/followers";
 import { health } from "./routes/health";
 import { logs } from "./routes/logs";
 import { me } from "./routes/me";
@@ -100,6 +101,7 @@ export function createApp() {
   authed.route("/dashboard", dashboard);
   authed.route("/repos", repos);
   authed.route("/events", events);
+  authed.route("/followers", followerRoutes);
   authed.route("/channels", channelRoutes);
   authed.route("/settings", settingsRoutes);
   authed.route("/security", security);
