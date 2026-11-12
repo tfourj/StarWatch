@@ -6,6 +6,7 @@ const THEME = process.env.THEME || "dark";
 const SHOTS = [
   { name: "dashboard", path: "/" },
   { name: "repositories", path: "/repositories" },
+  { name: "followers", path: "/followers" },
   { name: "events", path: "/events" },
   { name: "channels", path: "/channels" },
 ];
