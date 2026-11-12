@@ -20,7 +20,7 @@ export const slack: NotificationProvider = {
           {
             type: "section",
             text: { type: "mrkdwn", text },
-            ...(msg.kind === "star" && msg.vars.avatar
+            ...(msg.kind !== "login" && msg.vars.avatar
               ? { accessory: { type: "image", image_url: msg.vars.avatar, alt_text: msg.vars.user } }
               : {}),
           },
