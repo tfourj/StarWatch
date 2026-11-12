@@ -15,6 +15,12 @@ export interface HiddenKinds {
 
 export const NO_HIDDEN_KINDS: HiddenKinds = { private: false, forks: false, archived: false };
 
+export const HIDE_OPTIONS: { key: keyof HiddenKinds; label: string }[] = [
+  { key: "private", label: "Hide private" },
+  { key: "forks", label: "Hide forks" },
+  { key: "archived", label: "Hide archived" },
+];
+
 export const SORT_OPTIONS: { value: RepoSort; label: string }[] = [
   { value: "name", label: "Name" },
   { value: "stars-desc", label: "Most stars" },
