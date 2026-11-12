@@ -50,6 +50,8 @@ export interface DemoChannel {
   allRepos: boolean;
   notifyStar: boolean;
   notifyUnstar: boolean;
+  notifyFollow: boolean;
+  notifyUnfollow: boolean;
   milestoneEvery: number | null;
   frequencyTiers: FrequencyTier[] | null;
 }
@@ -78,6 +80,25 @@ export interface DemoDelivery {
   deliveredAt: Date | null;
 }
 
+export interface DemoFollower {
+  githubUserId: number;
+  login: string;
+  avatarUrl: string;
+  /** Null for followers from the initial import. */
+  followedAt: Date | null;
+}
+
+export interface DemoFollowerEvent {
+  id: number;
+  action: "followed" | "unfollowed";
+  actorId: number;
+  actorLogin: string;
+  actorAvatarUrl: string;
+  actorUrl: string;
+  followerCount: number;
+  occurredAt: Date;
+}
+
 export interface DemoData {
   repos: DemoRepo[];
   stargazers: DemoStargazer[];
@@ -85,6 +106,10 @@ export interface DemoData {
   repoChannels: { repositoryId: number; channelId: number }[];
   events: DemoEvent[];
   deliveries: DemoDelivery[];
+  followers: DemoFollower[];
+  followerEvents: DemoFollowerEvent[];
+  /** `eventId` points at `followerEvents`. */
+  followerDeliveries: DemoDelivery[];
 }
 
 interface RepoSpec {
@@ -262,6 +287,8 @@ export function generateDemoData(now = Date.now()): DemoData {
       allRepos: true,
       notifyStar: true,
       notifyUnstar: true,
+      notifyFollow: true,
+      notifyUnfollow: true,
       milestoneEvery: null,
       frequencyTiers: null,
     },
@@ -274,6 +301,8 @@ export function generateDemoData(now = Date.now()): DemoData {
       allRepos: true,
       notifyStar: true,
       notifyUnstar: true,
+      notifyFollow: true,
+      notifyUnfollow: true,
       milestoneEvery: null,
       frequencyTiers: DEFAULT_FREQUENCY_TIERS,
     },
@@ -286,6 +315,8 @@ export function generateDemoData(now = Date.now()): DemoData {
       allRepos: false,
       notifyStar: true,
       notifyUnstar: true,
+      notifyFollow: true,
+      notifyUnfollow: true,
       milestoneEvery: null,
       frequencyTiers: null,
     },
@@ -306,6 +337,8 @@ export function generateDemoData(now = Date.now()): DemoData {
       allRepos: true,
       notifyStar: true,
       notifyUnstar: false,
+      notifyFollow: false,
+      notifyUnfollow: false,
       milestoneEvery: 100,
       frequencyTiers: null,
     },
@@ -356,5 +389,59 @@ export function generateDemoData(now = Date.now()): DemoData {
     }
   }
 
-  return { repos, stargazers, channels, repoChannels, events, deliveries };
+  return { repos, stargazers, channels, repoChannels, events, deliveries, ...demoFollowers(now) };
+}
+
+/** Followers of the demo account with a month of follows and unfollows. Seeded apart so star data stays the same. */
+function demoFollowers(now: number): Pick<DemoData, "followers" | "followerEvents" | "followerDeliveries"> {
+  let state = 11;
+  const random = () => (state = (state * 16807) % 2147483647) / 2147483647;
+  const person = (id: number) => {
+    const login = random() < 0.4 ? `${LOGINS[Math.floor(random() * LOGINS.length)]}-${id}` : `dev${id}`;
+    return { githubUserId: 70_000 + id, login, avatarUrl: demoAvatar(login) };
+  };
+
+  const followers: DemoFollower[] = Array.from({ length: 212 }, (_, i) => ({ ...person(i), followedAt: null }));
+  const followerEvents: DemoFollowerEvent[] = [];
+  const followerDeliveries: DemoDelivery[] = [];
+  let next = followers.length;
+
+  // Oldest first, so the follower count only ever moves by one.
+  for (let i = 0; i < 16; i++) {
+    const occurredAt = new Date(now - (30 - i * 1.8) * DAY - random() * 10 * HOUR);
+    const unfollow = i % 5 === 3;
+    let actor: Omit<DemoFollower, "followedAt">;
+    if (unfollow) {
+      const index = Math.floor(random() * 150);
+      actor = followers.splice(index, 1)[0]!;
+    } else {
+      actor = person(next++);
+      followers.push({ ...actor, followedAt: occurredAt });
+    }
+    const event: DemoFollowerEvent = {
+      id: i + 1,
+      action: unfollow ? "unfollowed" : "followed",
+      actorId: actor.githubUserId,
+      actorLogin: actor.login,
+      actorAvatarUrl: actor.avatarUrl,
+      actorUrl: `https://github.com/${actor.login}`,
+      followerCount: followers.length,
+      occurredAt,
+    };
+    followerEvents.push(event);
+    for (const channelId of [1, 2]) {
+      const failed = i === 14 && channelId === 2;
+      followerDeliveries.push({
+        id: followerDeliveries.length + 1,
+        eventId: event.id,
+        channelId,
+        status: failed ? "failed" : "success",
+        attempts: failed ? 6 : 1,
+        lastError: failed ? "HTTP 503: Service Unavailable" : null,
+        nextAttemptAt: null,
+        deliveredAt: failed ? null : new Date(occurredAt.getTime() + 2000),
+      });
+    }
+  }
+  return { followers, followerEvents, followerDeliveries };
 }

@@ -60,6 +60,7 @@ interface State {
     templates: Partial<MessageTemplates> | null;
   };
   loginAlertChannelIds: number[];
+  followersEnabled: boolean;
   logs: LogBuffer;
   seenVersion: string | null;
   timePreferences: TimePreferences;
@@ -85,6 +86,7 @@ export function resetDemo(now = Date.now()) {
     ],
     settings: { pollingIntervalMinutes: 15, autoMonitorNew: false, templates: null },
     loginAlertChannelIds: [],
+    followersEnabled: true,
     logs: buildLogs(data, now),
     seenVersion: readStoredSeenVersion(),
     timePreferences: { ...DEFAULT_TIME_PREFERENCES },
@@ -531,6 +533,80 @@ function retryDelivery(id: number) {
   return { ok: true };
 }
 
+/* -------------------------------- Followers ------------------------------- */
+
+function followerStatus() {
+  const { data, followersEnabled, startedAt, settings } = getState();
+  const since = Date.now() - 30 * DAY;
+  const recent = (action: string) =>
+    data.followerEvents.filter((e) => e.action === action && e.occurredAt.getTime() >= since).length;
+  return {
+    enabled: followersEnabled,
+    connected: true,
+    login: DEMO_GITHUB_LOGIN,
+    followerCount: data.followers.length,
+    tracked: data.followers.length,
+    followed30d: recent("followed"),
+    unfollowed30d: recent("unfollowed"),
+    importedAt: new Date(startedAt - 31 * DAY),
+    checkedAt: new Date(startedAt - 3 * MINUTE),
+    error: null,
+    importing: false,
+    pollingIntervalMinutes: settings.pollingIntervalMinutes,
+  };
+}
+
+function setFollowersEnabled(body: Body) {
+  if (typeof body.enabled !== "boolean") badRequest("enabled must be true or false");
+  getState().followersEnabled = body.enabled;
+  return followerStatus();
+}
+
+function pageParams(url: URL, fallback: number) {
+  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+  const pageSize = Math.min(100, Math.max(5, Number(url.searchParams.get("pageSize")) || fallback));
+  return { page, pageSize };
+}
+
+function listFollowers(url: URL) {
+  const { page, pageSize } = pageParams(url, 50);
+  const q = url.searchParams.get("q")?.trim().toLowerCase();
+  const matches = getState()
+    .data.followers.filter((f) => !q || f.login.toLowerCase().includes(q))
+    .sort((a, b) => {
+      if (a.followedAt && b.followedAt) return b.followedAt.getTime() - a.followedAt.getTime();
+      if (a.followedAt || b.followedAt) return a.followedAt ? -1 : 1;
+      return a.login.localeCompare(b.login);
+    });
+  return { items: matches.slice((page - 1) * pageSize, page * pageSize), total: matches.length, page, pageSize };
+}
+
+function listFollowerEvents(url: URL) {
+  const { data } = getState();
+  const { page, pageSize } = pageParams(url, 25);
+  const sorted = [...data.followerEvents].sort(byNewest);
+  return {
+    items: sorted.slice((page - 1) * pageSize, page * pageSize).map((e) => ({
+      ...e,
+      deliveries: data.followerDeliveries.filter((d) => d.eventId === e.id).map(deliveryRow),
+    })),
+    total: sorted.length,
+    page,
+    pageSize,
+  };
+}
+
+function retryFollowerDelivery(id: number) {
+  const d = getState().data.followerDeliveries.find((x) => x.id === id) ?? notFound("Delivery not found");
+  if (d.status === "success") badRequest("Delivery already succeeded");
+  d.status = "success";
+  d.attempts += 1;
+  d.lastError = null;
+  d.nextAttemptAt = null;
+  d.deliveredAt = new Date();
+  return { ok: true };
+}
+
 /* -------------------------------- Channels -------------------------------- */
 
 function channelView(c: DemoChannel) {
@@ -550,6 +626,8 @@ function channelView(c: DemoChannel) {
     allRepos: c.allRepos,
     notifyStar: c.notifyStar,
     notifyUnstar: c.notifyUnstar,
+    notifyFollow: c.notifyFollow,
+    notifyUnfollow: c.notifyUnfollow,
     milestoneEvery: c.milestoneEvery,
     frequencyTiers: c.frequencyTiers,
     templates: null,
@@ -623,6 +701,8 @@ function createChannel(body: Body) {
     allRepos: body.allRepos !== false,
     notifyStar: body.notifyStar !== false,
     notifyUnstar: body.notifyUnstar !== false,
+    notifyFollow: body.notifyFollow !== false,
+    notifyUnfollow: body.notifyUnfollow !== false,
     milestoneEvery,
     frequencyTiers,
   };
@@ -640,6 +720,8 @@ function updateChannel(id: number, body: Body) {
   if (body.allRepos !== undefined) channel.allRepos = Boolean(body.allRepos);
   if (body.notifyStar !== undefined) channel.notifyStar = Boolean(body.notifyStar);
   if (body.notifyUnstar !== undefined) channel.notifyUnstar = Boolean(body.notifyUnstar);
+  if (body.notifyFollow !== undefined) channel.notifyFollow = Boolean(body.notifyFollow);
+  if (body.notifyUnfollow !== undefined) channel.notifyUnfollow = Boolean(body.notifyUnfollow);
   const milestoneEvery =
     body.milestoneEvery !== undefined ? cleanMilestone(body.milestoneEvery) : channel.milestoneEvery;
   const frequencyTiers =
@@ -848,6 +930,12 @@ const ROUTES: [string, RegExp, Handler][] = [
   ["PUT", /^\/repos\/(\d+)\/channels$/, ([id], _, body) => setRepoChannels(Number(id), body)],
   ["POST", /^\/repos\/(\d+)\/ping$/, () => unavailable("Pinging GitHub webhooks")],
   ["PATCH", /^\/repos\/(\d+)$/, ([id], _, body) => updateRepo(Number(id), body)],
+  ["GET", /^\/followers$/, () => followerStatus()],
+  ["PUT", /^\/followers$/, (_, __, body) => setFollowersEnabled(body)],
+  ["POST", /^\/followers\/sync$/, () => unavailable("Checking followers on GitHub")],
+  ["GET", /^\/followers\/list$/, (_, url) => listFollowers(url)],
+  ["GET", /^\/followers\/events$/, (_, url) => listFollowerEvents(url)],
+  ["POST", /^\/followers\/deliveries\/(\d+)\/retry$/, ([id]) => retryFollowerDelivery(Number(id))],
   ["GET", /^\/events$/, (_, url) => listEvents(url)],
   ["GET", /^\/events\/deliveries\/(\d+)\/attempts$/, ([id]) => deliveryAttempts(Number(id))],
   ["POST", /^\/events\/deliveries\/(\d+)\/retry$/, ([id]) => retryDelivery(Number(id))],
