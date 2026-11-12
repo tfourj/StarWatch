@@ -7,6 +7,7 @@ import {
   DEMO_USER,
   DEMO_WEBHOOK_BASE_URL,
   generateDemoData,
+  type DemoDelivery,
 } from "../../src/shared/demo-data";
 
 const BASE = "http://localhost:4321";
@@ -27,6 +28,12 @@ const db = new Database(`${DATA_DIR}/starwatch.db`);
 const userId = (db.query("select id from user").get() as { id: string }).id;
 const data = generateDemoData(now);
 const ms = (date: Date | null) => (date ? date.getTime() : null);
+
+/** Screenshots show every delivery as sent, so the README has no failed or retrying badges. */
+function delivered<T extends DemoDelivery>(d: T, occurredAt: Date): T {
+  const deliveredAt = new Date(occurredAt.getTime() + 2000);
+  return { ...d, status: "success", attempts: 1, lastError: null, nextAttemptAt: null, deliveredAt };
+}
 
 db.run(
   `insert or replace into user_settings
@@ -102,7 +109,9 @@ const insertDelivery = db.prepare(
      (id, event_id, channel_id, status, attempts, last_error, next_attempt_at, delivered_at)
    values (?, ?, ?, ?, ?, ?, ?, ?)`,
 );
-for (const d of data.deliveries) {
+const eventTimes = new Map(data.events.map((e) => [e.id, e.occurredAt]));
+for (const raw of data.deliveries) {
+  const d = delivered(raw, eventTimes.get(raw.eventId)!);
   insertDelivery.run(
     d.id, d.eventId, d.channelId, d.status, d.attempts, d.lastError, ms(d.nextAttemptAt), ms(d.deliveredAt),
   );
