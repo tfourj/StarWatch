@@ -33,8 +33,10 @@
 | Dashboard | Repositories |
 | --- | --- |
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Repositories](docs/screenshots/repositories.png) |
-| **Events** | **Channels** |
-| ![Events](docs/screenshots/events.png) | ![Channels](docs/screenshots/channels.png) |
+| **Followers** | **Events** |
+| ![Followers](docs/screenshots/followers.png) | ![Events](docs/screenshots/events.png) |
+| **Channels** | |
+| ![Channels](docs/screenshots/channels.png) | |
 
 ## Tech Stack
 
