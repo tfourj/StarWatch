@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, like, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, like, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { AuthedEnv } from "../auth/middleware";
 import { getDb } from "../db/client";
@@ -14,15 +14,28 @@ function pagination(c: { req: { query: (key: string) => string | undefined } }, 
   return { page, pageSize };
 }
 
+const DAY = 24 * 60 * 60_000;
+
 function statusView(userId: string) {
+  const db = getDb();
   const s = getUserSettings(userId);
-  const tracked = getDb().select({ n: count() }).from(followers).where(eq(followers.userId, userId)).get()?.n ?? 0;
+  const tracked = db.select({ n: count() }).from(followers).where(eq(followers.userId, userId)).get()?.n ?? 0;
+  const since = new Date(Date.now() - 30 * DAY);
+  const recent = db
+    .select({ action: followerEvents.action, n: count() })
+    .from(followerEvents)
+    .where(and(eq(followerEvents.userId, userId), gte(followerEvents.occurredAt, since)))
+    .groupBy(followerEvents.action)
+    .all();
+  const last30 = (action: string) => recent.find((r) => r.action === action)?.n ?? 0;
   return {
     enabled: s.followersEnabled,
     connected: Boolean(s.githubToken),
     login: s.githubLogin,
     followerCount: s.followerCount,
     tracked,
+    followed30d: last30("followed"),
+    unfollowed30d: last30("unfollowed"),
     importedAt: s.followersImportedAt,
     checkedAt: s.followersCheckedAt,
     error: s.followersError,
