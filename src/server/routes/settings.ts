@@ -8,6 +8,7 @@ import { cipher, hint } from "../lib/crypto";
 import { HttpError, readJson } from "../lib/http";
 import { mergeTemplates } from "../lib/template";
 import { logger } from "../logger";
+import { resetFollowers, syncFollowers } from "../services/followers";
 import { syncRepositories } from "../services/repos";
 import {
   getAppSetting,
@@ -145,9 +146,13 @@ export const settingsRoutes = new Hono<AuthedEnv>()
     const trimmed = token?.trim();
     if (!trimmed) throw new HttpError(400, "Token is required");
     const info = await validateOrThrow(trimmed);
+    const previous = getUserSettings(user.id);
     storeToken(user.id, trimmed, info);
     log.info("github token saved", { userId: user.id, login: info.login, scopes: info.scopes });
     void syncRepositories(user.id).catch(() => undefined);
+    // Followers belong to the token's account, so a different account starts with a fresh silent import.
+    if (previous.githubLogin && previous.githubLogin !== info.login) resetFollowers(user.id);
+    if (previous.followersEnabled) void syncFollowers(user.id).catch(() => undefined);
     return c.json({ ...settingsView(user.id, user.role === "admin"), tokenInfo: info });
   })
   .post("/github-token/check", async (c) => {
