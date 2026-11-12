@@ -208,4 +208,12 @@ describe("email", () => {
       expect(mail.attachments).toBeUndefined();
     }
   });
+
+  test("adds a unique thread header only when separate threads is on", () => {
+    expect(buildMail(config, message("plain"), logo).headers).toBeUndefined();
+    const first = buildMail({ ...config, separateThreads: true }, message("plain"), logo).headers;
+    const second = buildMail({ ...config, separateThreads: "true" }, message("plain"), logo).headers;
+    expect(first).toEqual({ "X-Entity-Ref-ID": expect.any(String) });
+    expect(second).not.toEqual(first);
+  });
 });
