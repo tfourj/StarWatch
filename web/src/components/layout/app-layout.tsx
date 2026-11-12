@@ -12,6 +12,7 @@ import {
   ScrollText,
   Settings,
   Sun,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { Suspense, useState } from "react";
@@ -43,6 +44,7 @@ import { cn, setTimePreferences } from "@/lib/utils";
 const NAV: { to: string; label: string; icon: LucideIcon; adminOnly?: boolean }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/repositories", label: "Repositories", icon: BookMarked },
+  { to: "/followers", label: "Followers", icon: Users },
   { to: "/events", label: "Events", icon: Activity },
   { to: "/channels", label: "Channels", icon: Bell },
   { to: "/logs", label: "Logs", icon: ScrollText, adminOnly: true },

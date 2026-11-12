@@ -55,6 +55,6 @@ StarWatch/
 │       ├── demo/               In-browser fake API for the static demo build
 │       ├── components/repos/   Repository dialogs (add repositories, stargazers)
 │       ├── components/         Layout, sidebar, shared widgets
-│       └── pages/              Dashboard, Repositories, Events, Channels, Logs, Settings, auth pages
+│       └── pages/              Dashboard, Repositories, Followers, Events, Channels, Logs, Settings, auth pages
 └── tests/                      bun test suites
 ```

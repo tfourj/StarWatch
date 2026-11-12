@@ -191,6 +191,64 @@ export interface EventsResponse {
   pageSize: number;
 }
 
+export interface FollowerStatus {
+  enabled: boolean;
+  connected: boolean;
+  login: string | null;
+  followerCount: number;
+  tracked: number;
+  followed30d: number;
+  unfollowed30d: number;
+  importedAt: string | null;
+  checkedAt: string | null;
+  error: string | null;
+  /** True while the first follower import is running. */
+  importing: boolean;
+  pollingIntervalMinutes: number;
+}
+
+export interface Follower {
+  githubUserId: number;
+  login: string;
+  avatarUrl: string | null;
+  /** When the follow was seen, null for followers from the initial import. */
+  followedAt: string | null;
+}
+
+export interface FollowersResponse {
+  items: Follower[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface FollowerEventRow {
+  id: number;
+  action: "followed" | "unfollowed";
+  actorId: number;
+  actorLogin: string;
+  actorAvatarUrl: string | null;
+  actorUrl: string | null;
+  followerCount: number;
+  occurredAt: string;
+  deliveries: Delivery[];
+}
+
+export interface FollowerEventsResponse {
+  items: FollowerEventRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface FollowerSyncSummary {
+  followers: number;
+  followed: number;
+  unfollowed: number;
+  imported: boolean;
+  skipped: boolean;
+}
+
 export interface DeliveryAttempt {
   id: number;
   attempt: number;
