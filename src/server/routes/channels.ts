@@ -29,6 +29,8 @@ interface ChannelBody {
   repoIds?: number[];
   notifyStar?: boolean;
   notifyUnstar?: boolean;
+  notifyFollow?: boolean;
+  notifyUnfollow?: boolean;
   milestoneEvery?: number | null;
   frequencyTiers?: FrequencyTier[] | null;
   templates?: Partial<MessageTemplates> | null;
@@ -44,6 +46,8 @@ function serialize(channel: Channel, repoIds: number[]) {
     allRepos: channel.allRepos,
     notifyStar: channel.notifyStar,
     notifyUnstar: channel.notifyUnstar,
+    notifyFollow: channel.notifyFollow,
+    notifyUnfollow: channel.notifyUnfollow,
     milestoneEvery: channel.milestoneEvery,
     frequencyTiers: channel.frequencyTiers,
     templates: channel.templates,
@@ -155,6 +159,8 @@ export const channelRoutes = new Hono<AuthedEnv>()
         allRepos: body.allRepos ?? true,
         notifyStar: body.notifyStar ?? true,
         notifyUnstar: body.notifyUnstar ?? true,
+        notifyFollow: body.notifyFollow ?? true,
+        notifyUnfollow: body.notifyUnfollow ?? true,
         milestoneEvery,
         frequencyTiers,
         templates: cleanTemplates(body.templates),
@@ -183,6 +189,8 @@ export const channelRoutes = new Hono<AuthedEnv>()
     if (body.allRepos !== undefined) patch.allRepos = Boolean(body.allRepos);
     if (body.notifyStar !== undefined) patch.notifyStar = Boolean(body.notifyStar);
     if (body.notifyUnstar !== undefined) patch.notifyUnstar = Boolean(body.notifyUnstar);
+    if (body.notifyFollow !== undefined) patch.notifyFollow = Boolean(body.notifyFollow);
+    if (body.notifyUnfollow !== undefined) patch.notifyUnfollow = Boolean(body.notifyUnfollow);
     if (body.milestoneEvery !== undefined) patch.milestoneEvery = cleanMilestone(body.milestoneEvery);
     if (body.frequencyTiers !== undefined) patch.frequencyTiers = cleanFrequency(body.frequencyTiers);
     assertOneThinningMode(
