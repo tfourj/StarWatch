@@ -237,7 +237,7 @@ function FollowersCard({ status }: { status: FollowerStatus }) {
   }, [page, search]);
 
   return (
-    <Card className="gap-0 py-0 xl:col-span-2 xl:h-0 xl:min-h-full">
+    <Card className="gap-0 py-0 xl:col-span-2 xl:self-start">
       <CardHeader className="border-b py-4">
         <CardTitle>Followers</CardTitle>
       </CardHeader>
@@ -253,7 +253,7 @@ function FollowersCard({ status }: { status: FollowerStatus }) {
           <Spinner className="absolute top-1/2 right-6 -translate-y-1/2 text-muted-foreground" />
         )}
       </div>
-      <CardContent ref={listRef} className="max-h-[32rem] min-h-0 flex-1 overflow-y-auto px-0 xl:max-h-none">
+      <CardContent ref={listRef} className="max-h-[32rem] overflow-y-auto px-0">
         {error && (
           <div className="p-4">
             <ErrorNote>{error.message}</ErrorNote>
@@ -403,7 +403,7 @@ export function FollowersPage() {
         <StatCard label="Unfollows in 30 days" value={formatNumber(status.unfollowed30d)} icon={UserMinus} />
       </div>
 
-      <div className="grid gap-6 xl:auto-rows-[minmax(36rem,auto)] xl:grid-cols-5">
+      <div className="grid gap-6 xl:grid-cols-5">
         <ActivityCard onRetry={(d) => mutations.retry.mutate(d)} />
         <FollowersCard status={status} />
       </div>
