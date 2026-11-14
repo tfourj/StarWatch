@@ -1,4 +1,4 @@
-import { CircleAlert, Loader2, Star, StarOff, type LucideIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleAlert, Loader2, Star, StarOff, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,35 @@ export function PageHeader({ title, description, actions }: { title?: string; de
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  );
+}
+
+export function Pager({
+  page,
+  totalPages,
+  onChange,
+  className,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+  className?: string;
+}) {
+  if (totalPages <= 1) return null;
+  return (
+    <div className={cn("flex items-center justify-between gap-2 text-sm text-muted-foreground", className)}>
+      <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+        <ChevronLeft />
+        Previous
+      </Button>
+      <span className="tabular-nums">
+        {page} / {totalPages}
+      </span>
+      <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
+        Next
+        <ChevronRight />
+      </Button>
     </div>
   );
 }

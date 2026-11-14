@@ -1,8 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Search, Star } from "lucide-react";
+import { Search, Star } from "lucide-react";
 import { useEffect, useState } from "react";
-import { EmptyState, ErrorNote, Spinner, UserAvatar } from "@/components/shared";
-import { Button } from "@/components/ui/button";
+import { EmptyState, ErrorNote, Pager, Spinner, UserAvatar } from "@/components/shared";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -147,21 +146,7 @@ export function StargazersDialog({ repo, onClose }: { repo: Repo | null; onClose
           )}
         </ScrollArea>
 
-        {data && totalPages > 1 && (
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-              <ChevronLeft />
-              Previous
-            </Button>
-            <span className="tabular-nums">
-              {page} / {totalPages}
-            </span>
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-              Next
-              <ChevronRight />
-            </Button>
-          </div>
-        )}
+        {data && <Pager page={page} totalPages={totalPages} onChange={setPage} />}
       </DialogContent>
     </Dialog>
   );

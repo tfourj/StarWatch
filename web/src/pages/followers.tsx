@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, RefreshCw, Search, UserMinus, UserPlus, Users } from "lucide-react";
+import { RefreshCw, Search, UserMinus, UserPlus, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import {
   EmptyState,
   ErrorNote,
   PageHeader,
+  Pager,
   Spinner,
   StatCard,
   UserAvatar,
@@ -36,6 +37,7 @@ const FOLLOWERS_PAGE_SIZE = 50;
 // Both cards share a capped height and scroll their body, so long lists never stretch the page.
 // Without a pager below it, the body stops short of the rounded corner so the scrollbar is not clipped.
 const LIST_CARD_CLASS = "max-h-[40rem] min-w-0 gap-0 py-0";
+const PAGER_CLASS = "border-t px-4 py-3";
 const LIST_BODY_CLASS = "min-h-0 flex-1 last:mb-(--radius-xl)";
 
 function useFollowerMutations() {
@@ -86,25 +88,6 @@ function FollowBadge({ action }: { action: FollowerEventRow["action"] }) {
       <UserMinus />
       Unfollow
     </Badge>
-  );
-}
-
-function Pager({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (page: number) => void }) {
-  if (totalPages <= 1) return null;
-  return (
-    <div className="flex items-center justify-between gap-2 border-t px-4 py-3 text-sm text-muted-foreground">
-      <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>
-        <ChevronLeft />
-        Previous
-      </Button>
-      <span className="tabular-nums">
-        {page} / {totalPages}
-      </span>
-      <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
-        Next
-        <ChevronRight />
-      </Button>
-    </div>
   );
 }
 
@@ -216,7 +199,7 @@ function ActivityCard({ onRetry }: { onRetry: (d: Delivery) => void }) {
         )}
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
-      <Pager page={page} totalPages={totalPages} onChange={setPage} />
+      <Pager page={page} totalPages={totalPages} onChange={setPage} className={PAGER_CLASS} />
     </Card>
   );
 }
@@ -308,7 +291,7 @@ function FollowersCard({ status }: { status: FollowerStatus }) {
           </ul>
         )}
       </ScrollArea>
-      <Pager page={page} totalPages={totalPages} onChange={setPage} />
+      <Pager page={page} totalPages={totalPages} onChange={setPage} className={PAGER_CLASS} />
     </Card>
   );
 }
