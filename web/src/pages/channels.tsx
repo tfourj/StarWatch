@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -354,29 +355,31 @@ function ChannelDialog({
                 <Switch id="all-repos" checked={form.allRepos} onCheckedChange={(v) => set("allRepos", v)} />
               </div>
               {!form.allRepos && (
-                <div className="max-h-48 overflow-y-auto rounded-md border p-2">
-                  {monitoredRepos.length === 0 ? (
-                    <p className="p-2 text-xs text-muted-foreground">No monitored repositories yet.</p>
-                  ) : (
-                    monitoredRepos.map((r) => (
-                      <label
-                        key={r.id}
-                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted"
-                      >
-                        <Checkbox
-                          checked={form.repoIds.includes(r.id)}
-                          onCheckedChange={(v) =>
-                            set(
-                              "repoIds",
-                              v === true ? [...form.repoIds, r.id] : form.repoIds.filter((id) => id !== r.id),
-                            )
-                          }
-                        />
-                        <span className="truncate">{r.fullName}</span>
-                      </label>
-                    ))
-                  )}
-                </div>
+                <ScrollArea className="max-h-48 rounded-md border">
+                  <div className="p-2">
+                    {monitoredRepos.length === 0 ? (
+                      <p className="p-2 text-xs text-muted-foreground">No monitored repositories yet.</p>
+                    ) : (
+                      monitoredRepos.map((r) => (
+                        <label
+                          key={r.id}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted"
+                        >
+                          <Checkbox
+                            checked={form.repoIds.includes(r.id)}
+                            onCheckedChange={(v) =>
+                              set(
+                                "repoIds",
+                                v === true ? [...form.repoIds, r.id] : form.repoIds.filter((id) => id !== r.id),
+                              )
+                            }
+                          />
+                          <span className="truncate">{r.fullName}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
               )}
               <div className="flex items-center justify-between">
                 <Label htmlFor="channel-enabled">Enabled</Label>

@@ -3,6 +3,7 @@ import { Fragment, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { CHANGELOG, type ChangelogRelease } from "@/lib/changelog";
 import type { SetupStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -195,11 +196,13 @@ export function ChangelogDialog({
           <DialogDescription className="sr-only">Release notes</DialogDescription>
         )}
 
-        <div className="-mx-1 flex max-h-[55dvh] flex-col overflow-y-auto px-1">
-          {CHANGELOG.map((release, i) => (
-            <ReleaseItem key={release.version} release={release} defaultOpen={i === 0} badge={badgeFor(release, i)} />
-          ))}
-        </div>
+        <ScrollArea className="-mx-1 max-h-[55dvh]">
+          <div className="flex flex-col pr-3 pl-1">
+            {CHANGELOG.map((release, i) => (
+              <ReleaseItem key={release.version} release={release} defaultOpen={i === 0} badge={badgeFor(release, i)} />
+            ))}
+          </div>
+        </ScrollArea>
 
         <a
           href={RELEASES_URL}
