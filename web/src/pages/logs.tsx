@@ -1,6 +1,6 @@
 import { Download, Pause, Play, ScrollText, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { EmptyState, ErrorNote, LoadingPill, PageHeader, Spinner } from "@/components/shared";
+import { EmptyState, ErrorNote, LoadingPill, PageHeader, Pager, Spinner } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,6 +29,7 @@ interface LogsResponse {
 
 const POLL_MS = 3_000;
 const MAX_ROWS = 1_000;
+const PAGE_SIZE = 50;
 
 const LEVEL_STYLES: Record<Level, "secondary" | "outline" | "warning" | "destructive"> = {
   debug: "outline",
@@ -108,7 +109,9 @@ export function LogsPage() {
   const [live, setLive] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const lastId = useRef(0);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(query.trim()), 300);
@@ -117,7 +120,7 @@ export function LogsPage() {
 
   const fetchLogs = useCallback(
     async (incremental: boolean) => {
-      const params = new URLSearchParams({ limit: "500" });
+      const params = new URLSearchParams({ limit: String(MAX_ROWS) });
       if (incremental && lastId.current) params.set("after", String(lastId.current));
       if (level) params.set("level", level);
       if (scope) params.set("scope", scope);
@@ -144,17 +147,28 @@ export function LogsPage() {
   // Reload from scratch whenever the filters change.
   useEffect(() => {
     lastId.current = 0;
+    setPage(1);
     setLoading(true);
     void fetchLogs(false);
   }, [fetchLogs]);
 
+  // New lines only arrive on the first page, so older pages stay put while they are read.
+  const tailing = live && page === 1;
+
   useEffect(() => {
-    if (!live) return;
+    if (!tailing) return;
     const timer = setInterval(() => void fetchLogs(true), POLL_MS);
     return () => clearInterval(timer);
-  }, [live, fetchLogs]);
+  }, [tailing, fetchLogs]);
 
   const newestFirst = useMemo(() => [...entries].reverse(), [entries]);
+  const totalPages = Math.max(1, Math.ceil(newestFirst.length / PAGE_SIZE));
+  const pageRows = newestFirst.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function changePage(next: number) {
+    setPage(next);
+    cardRef.current?.scrollIntoView({ block: "start" });
+  }
 
   function download() {
     const text = entries
@@ -193,7 +207,7 @@ export function LogsPage() {
         </div>
       )}
 
-      <Card className="gap-0 py-0">
+      <Card ref={cardRef} className="scroll-mt-4 gap-0 py-0">
         <div className="flex flex-col gap-2 border-b p-4 lg:flex-row lg:items-center">
           <div className="relative min-w-48 flex-1">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -237,12 +251,13 @@ export function LogsPage() {
             {entries.length} {entries.length === 1 ? "line" : "lines"}
             {logLevel !== "debug" && " · debug lines are not recorded, set LOG_LEVEL=debug to include them"}
           </span>
-          {live && (
+          {tailing && (
             <span className="flex items-center gap-1.5">
               <span className="size-2 animate-pulse rounded-full bg-success" />
               Live
             </span>
           )}
+          {live && !tailing && <span>Live on page 1</span>}
         </div>
 
         {loading && entries.length === 0 ? (
@@ -257,11 +272,12 @@ export function LogsPage() {
           />
         ) : (
           <ul>
-            {newestFirst.map((entry) => (
+            {pageRows.map((entry) => (
               <LogRow key={entry.id} entry={entry} />
             ))}
           </ul>
         )}
+        <Pager page={page} totalPages={totalPages} onChange={changePage} className="border-t px-4 py-3" />
       </Card>
     </>
   );
