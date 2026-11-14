@@ -15,8 +15,9 @@ import {
 } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api, errorMessage } from "@/lib/api";
@@ -35,7 +36,7 @@ const FOLLOWERS_PAGE_SIZE = 50;
 // Both cards share a capped height and scroll their body, so long lists never stretch the page.
 // Without a pager below it, the body stops short of the rounded corner so the scrollbar is not clipped.
 const LIST_CARD_CLASS = "max-h-[40rem] gap-0 py-0";
-const LIST_BODY_CLASS = "min-h-0 flex-1 overflow-y-auto px-0 last:mb-(--radius-xl)";
+const LIST_BODY_CLASS = "min-h-0 flex-1 last:mb-(--radius-xl)";
 
 function useFollowerMutations() {
   const queryClient = useQueryClient();
@@ -152,7 +153,10 @@ function ActivityCard({ onRetry }: { onRetry: (d: Delivery) => void }) {
       <CardHeader className="border-b py-4">
         <CardTitle>Activity</CardTitle>
       </CardHeader>
-      <CardContent ref={bodyRef} className={cn(LIST_BODY_CLASS, "[&_[data-slot=table-container]]:overflow-visible")}>
+      <ScrollArea
+        viewportRef={bodyRef}
+        className={cn(LIST_BODY_CLASS, "[&_[data-slot=table-container]]:overflow-visible")}
+      >
         {error && (
           <div className="p-4">
             <ErrorNote>{error.message}</ErrorNote>
@@ -210,7 +214,8 @@ function ActivityCard({ onRetry }: { onRetry: (d: Delivery) => void }) {
             </TableBody>
           </Table>
         )}
-      </CardContent>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
       <Pager page={page} totalPages={totalPages} onChange={setPage} />
     </Card>
   );
@@ -262,7 +267,7 @@ function FollowersCard({ status }: { status: FollowerStatus }) {
           <Spinner className="absolute top-1/2 right-6 -translate-y-1/2 text-muted-foreground" />
         )}
       </div>
-      <CardContent ref={listRef} className={LIST_BODY_CLASS}>
+      <ScrollArea viewportRef={listRef} className={LIST_BODY_CLASS}>
         {error && (
           <div className="p-4">
             <ErrorNote>{error.message}</ErrorNote>
@@ -302,7 +307,7 @@ function FollowersCard({ status }: { status: FollowerStatus }) {
             ))}
           </ul>
         )}
-      </CardContent>
+      </ScrollArea>
       <Pager page={page} totalPages={totalPages} onChange={setPage} />
     </Card>
   );

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   HIDE_OPTIONS,
@@ -182,36 +183,38 @@ export function AddRepositoriesDialog({
                   <span className="ml-auto text-xs text-muted-foreground">{selected.size} selected</span>
                 )}
               </label>
-              <ul className="max-h-[45dvh] divide-y overflow-y-auto">
-                {shown.length === 0 && (
-                  <li className="px-3 py-6 text-center text-sm text-muted-foreground">No matching repositories</li>
-                )}
-                {shown.map((r) => (
-                  <li key={r.id}>
-                    <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-muted/50">
-                      <Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => toggle(r.id, v === true)} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="truncate text-sm font-medium">{r.fullName}</span>
-                          {r.private && (
-                            <Badge variant="outline">
-                              <Lock />
-                              Private
-                            </Badge>
-                          )}
-                          {r.fork && <Badge variant="outline">Fork</Badge>}
-                          {r.archived && <Badge variant="outline">Archived</Badge>}
+              <ScrollArea className="max-h-[45dvh]">
+                <ul className="divide-y">
+                  {shown.length === 0 && (
+                    <li className="px-3 py-6 text-center text-sm text-muted-foreground">No matching repositories</li>
+                  )}
+                  {shown.map((r) => (
+                    <li key={r.id}>
+                      <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-muted/50">
+                        <Checkbox checked={selected.has(r.id)} onCheckedChange={(v) => toggle(r.id, v === true)} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-sm font-medium">{r.fullName}</span>
+                            {r.private && (
+                              <Badge variant="outline">
+                                <Lock />
+                                Private
+                              </Badge>
+                            )}
+                            {r.fork && <Badge variant="outline">Fork</Badge>}
+                            {r.archived && <Badge variant="outline">Archived</Badge>}
+                          </div>
+                          {r.description && <p className="truncate text-xs text-muted-foreground">{r.description}</p>}
                         </div>
-                        {r.description && <p className="truncate text-xs text-muted-foreground">{r.description}</p>}
-                      </div>
-                      <span className="inline-flex shrink-0 items-center gap-1 text-sm tabular-nums">
-                        <Star className="size-3.5 fill-star text-star" />
-                        {formatNumber(r.starCount)}
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
+                        <span className="inline-flex shrink-0 items-center gap-1 text-sm tabular-nums">
+                          <Star className="size-3.5 fill-star text-star" />
+                          {formatNumber(r.starCount)}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
             </>
           )}
         </div>
